@@ -5,6 +5,7 @@
 #include <utility>
 #include <vector>
 #include <map>
+#include <cmath>
 
 using namespace std;
 
@@ -66,9 +67,10 @@ public:
 
         for (const auto& word : words)
         {
-            documents_[word].insert(document_id);
+            indexes_[word].insert(document_id);
         }
-        
+
+        ++document_count;
     }
 
     vector<Document> FindTopDocuments(const string& raw_query) const 
@@ -99,9 +101,11 @@ private:
         set<string> minus_words;
     };
 
-    map<string, set<int>> documents_;
+    map<string, set<int>> indexes_;
 
     set<string> stop_words_;
+
+    int document_count{ 0 };
 
     bool IsStopWord(const string& word) const {
         return stop_words_.count(word) > 0;
@@ -143,15 +147,88 @@ private:
         return query;
     }
 
+    map<string, double> GetQueryIDF(const Query& query) const
+    {
+        map<string, double> idf;
+
+        map<string, int> idf_count;
+
+        for (const auto& index : indexes_)
+        {
+            if (query.plus_words.count(index.first))
+            {
+                for (auto i : index.second)
+                {
+                    ++idf_count[index.first];
+                }
+            }
+        }
+
+        for (const auto& [word, count] : idf_count)
+        {
+            idf[word] = log(document_count / count);
+        }
+
+        return idf;
+    }
+
     vector<Document> FindAllDocuments(const Query& query) const 
     {
         vector<Document> matched_documents;
 
+        map<string, double> idf = GetQueryIDF(query);
+
+        map<int, int> document_total_words_count;
+
+        for (int i = 0; i < document_count; i++)
+        {
+            document_total_words_count[i] = count_if(indexes_.begin(), indexes_.end(), [i](const pair<string, set<int>>& index)
+                {
+                    return index.second.count(i) > 0;
+                });
+        }
+
+        map<int, map<string, double>> document_tf;
+
+        for (auto [id, words_count] : document_total_words_count)
+        {
+            int doc_id = id;
+
+            map<string, double> word_tf;
+
+            for (const auto& word : query.plus_words)
+            {
+                int count = count_if(indexes_.begin(), indexes_.end(), [doc_id, word](const pair<string, set<int>>& index)
+                    {
+                        return index.second.count(doc_id) > 0 && index.first == word;
+                    });
+
+                word_tf[word] = count * 1.0 / words_count * 1.0;
+
+            }
+
+            document_tf[id] = word_tf;
+        }
+
+
+        
+        
+        for (auto t : document_tf)
+        {
+           // matched_documents.push_back({ t.first, t.second *  });
+        }
+
+        
         map<int, int> relevance;
 
-        for (const auto& document : documents_) 
+
+
+
+
+
+        for (const auto& index : indexes_)
         {
-            const set<int> docsument_ids = MatchDocument(document, query);
+            const set<int> docsument_ids = MatchDocument(index, query, document_count);
             
             if (docsument_ids.empty())
             {
@@ -173,12 +250,18 @@ private:
         return matched_documents;
     }
 
-    static set<int> MatchDocument(const pair<string, set<int>> content, const Query& query) 
+    static set<int> MatchDocument(const pair<string, set<int>> content, const Query& query, int documents_count) 
     {
         if (query.plus_words.empty()) 
         {
             return set<int>{};
         }
+
+        for (int i = 0; i < documents_count - 1; i++)
+        {
+
+        }
+
         
         if (query.plus_words.count(content.first) && !query.minus_words.count(content.first))
         {
