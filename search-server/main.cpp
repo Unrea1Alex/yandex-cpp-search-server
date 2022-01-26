@@ -6,6 +6,7 @@
 #include <vector>
 #include <map>
 #include <cmath>
+#include <numeric>
 
 using namespace std;
 
@@ -47,7 +48,8 @@ vector<string> SplitIntoWords(const string& text) {
 
 struct Document {
     int id;
-    int relevance;
+    double relevance;
+    int rating;
 };
 
 class SearchServer 
@@ -61,14 +63,16 @@ public:
         }
     }
 
-    void AddDocument(int document_id, const string& document) 
+    void AddDocument(int document_id, const string& document, const vector<int>& ratings) 
     {
         const vector<string> words = SplitIntoWordsNoStop(document);
 
         for (const auto& word : words)
         {
-            indexes_[word].insert(document_id);
+            indexes_[word].insert({ document_id, GetWordTF(words, word)});
         }
+
+        documents_rating_.insert({document_id, ComputeAverageRating(ratings) });
 
         ++document_count;
     }
@@ -101,11 +105,34 @@ private:
         set<string> minus_words;
     };
 
-    map<string, set<int>> indexes_;
+    map<string, map<int, double>> indexes_;
 
     set<string> stop_words_;
+    map<int, int> documents_rating_;
 
     int document_count{ 0 };
+
+    int ComputeAverageRating(const vector<int>& ratings) const
+    {
+        if (ratings.empty())
+        {
+            return 0;
+        }
+
+        int sum = accumulate(ratings.begin(), ratings.end(), 0);
+
+        return sum / ratings.size();
+    }
+
+    double GetWordTF(const vector<string>& words, const string& word) const
+    {
+        int words_count = count_if(words.begin(), words.end(), [&word](const string& w)
+            {
+                return w == word;
+            });
+            
+        return words_count * 1.0 / words.size() * 1.0;
+    }
 
     bool IsStopWord(const string& word) const {
         return stop_words_.count(word) > 0;
@@ -121,9 +148,10 @@ private:
         return words;
     }
 
-    QueryWord ParseQueryWord(string text) const {
+    QueryWord ParseQueryWord(string text) const 
+    {
         bool is_minus = false;
-        // Word shouldn't be empty
+
         if (text[0] == '-') {
             is_minus = true;
             text = text.substr(1);
@@ -151,22 +179,12 @@ private:
     {
         map<string, double> idf;
 
-        map<string, int> idf_count;
-
-        for (const auto& index : indexes_)
+        for (const auto& word : query.plus_words)
         {
-            if (query.plus_words.count(index.first))
+            if (indexes_.count(word))
             {
-                for (auto i : index.second)
-                {
-                    ++idf_count[index.first];
-                }
+                idf[word] = log(document_count * 1.0 / indexes_.at(word).size() * 1.0);
             }
-        }
-
-        for (const auto& [word, count] : idf_count)
-        {
-            idf[word] = log(document_count / count);
         }
 
         return idf;
@@ -176,99 +194,46 @@ private:
     {
         vector<Document> matched_documents;
 
-        map<string, double> idf = GetQueryIDF(query);
-
-        map<int, int> document_total_words_count;
-
-        for (int i = 0; i < document_count; i++)
+        for(int i = 0; i < document_count; i++)
         {
-            document_total_words_count[i] = count_if(indexes_.begin(), indexes_.end(), [i](const pair<string, set<int>>& index)
-                {
-                    return index.second.count(i) > 0;
-                });
-        }
+            double relevance = MatchDocument(i, query);
 
-        map<int, map<string, double>> document_tf;
-
-        for (auto [id, words_count] : document_total_words_count)
-        {
-            int doc_id = id;
-
-            map<string, double> word_tf;
-
-            for (const auto& word : query.plus_words)
+            if (relevance > 0)
             {
-                int count = count_if(indexes_.begin(), indexes_.end(), [doc_id, word](const pair<string, set<int>>& index)
-                    {
-                        return index.second.count(doc_id) > 0 && index.first == word;
-                    });
-
-                word_tf[word] = count * 1.0 / words_count * 1.0;
-
+                matched_documents.push_back({ i, relevance, documents_rating_.at(i)});
             }
-
-            document_tf[id] = word_tf;
-        }
-
-
-        
-        
-        for (auto t : document_tf)
-        {
-           // matched_documents.push_back({ t.first, t.second *  });
-        }
-
-        
-        map<int, int> relevance;
-
-
-
-
-
-
-        for (const auto& index : indexes_)
-        {
-            const set<int> docsument_ids = MatchDocument(index, query, document_count);
-            
-            if (docsument_ids.empty())
-            {
-                continue;
-            }
-
-            for (auto document_id : docsument_ids)
-            {
-                ++relevance[document_id];
-            }
-
-        }
-
-        for (auto [id, rel] : relevance)
-        {
-            matched_documents.push_back({ id, rel });
         }
 
         return matched_documents;
     }
 
-    static set<int> MatchDocument(const pair<string, set<int>> content, const Query& query, int documents_count) 
+    double MatchDocument(int document_id, const Query& query) const
     {
         if (query.plus_words.empty()) 
         {
-            return set<int>{};
+            return 0;
         }
 
-        for (int i = 0; i < documents_count - 1; i++)
+        if (count_if(indexes_.begin(), indexes_.end(), [document_id, &query](const pair<string, map<int, double>>& index)
+            {
+                return index.second.count(document_id) > 0 && query.minus_words.count(index.first);
+            }))
         {
-
+            return 0;
         }
 
-        
-        if (query.plus_words.count(content.first) && !query.minus_words.count(content.first))
-        {
-            return content.second;
-        }
+        map<string, double> idf = GetQueryIDF(query);
 
-        return set<int>{};
+        double relevance = accumulate(indexes_.begin(), indexes_.end(), 0.0, [&idf, document_id](double d, const pair<string, map<int, double>> index)
+            {
+                if (idf.count(index.first) && index.second.count(document_id))
+                {
+                    return d + index.second.at(document_id) * idf[index.first];
+                }
+                return d;
+            });
+
+        return relevance;
     }
 };
 
@@ -277,8 +242,23 @@ SearchServer CreateSearchServer() {
     search_server.SetStopWords(ReadLine());
 
     const int document_count = ReadLineWithNumber();
-    for (int document_id = 0; document_id < document_count; ++document_id) {
-        search_server.AddDocument(document_id, ReadLine());
+    for (int document_id = 0; document_id < document_count; ++document_id) 
+    {
+        string document = ReadLine();
+
+        int rating_count{ 0 };
+        cin >> rating_count;
+
+        vector<int> ratings;
+
+        for (int i = 0; i < rating_count; i++)
+        {
+            int r;
+            cin >> r;
+            ratings.push_back(r);
+        }
+
+        search_server.AddDocument(document_id, document, ratings);
     }
 
     return search_server;
@@ -288,7 +268,7 @@ int main() {
     const SearchServer search_server = CreateSearchServer();
 
     const string query = ReadLine();
-    for (const auto& [document_id, relevance] : search_server.FindTopDocuments(query)) {
+    for (const auto& [document_id, relevance, rating] : search_server.FindTopDocuments(query)) {
         cout << "{ document_id = "s << document_id << ", "
             << "relevance = "s << relevance << " }"s << endl;
     }
