@@ -46,11 +46,22 @@ vector<string> SplitIntoWords(const string& text) {
     return words;
 }
 
+enum class DocumentStatus
+{
+    ACTUAL,
+    IRRELEVANT,
+    BANNED,
+    REMOVED
+};
+
 struct Document {
     int id;
     double relevance;
     int rating;
+    DocumentStatus status;
 };
+
+
 
 class SearchServer 
 {
@@ -63,7 +74,7 @@ public:
         }
     }
 
-    void AddDocument(int document_id, const string& document, const vector<int>& ratings) 
+    void AddDocument(int document_id, const string& document, DocumentStatus status, const vector<int>& ratings) 
     {
         const vector<string> words = SplitIntoWordsNoStop(document);
 
@@ -73,14 +84,26 @@ public:
         }
 
         documents_rating_.insert({document_id, ComputeAverageRating(ratings) });
+        documents_status_.insert({ document_id, status });
 
         ++document_count;
     }
 
-    vector<Document> FindTopDocuments(const string& raw_query) const 
+    vector<Document> FindTopDocuments(const string& raw_query, DocumentStatus status = DocumentStatus::ACTUAL) const
     {
         const Query query = ParseQuery(raw_query);
         auto matched_documents = FindAllDocuments(query);
+
+        for (std::vector<Document>::iterator it = matched_documents.begin(); it != matched_documents.end(); ) {
+            if (it->status != status) 
+            {
+                it = matched_documents.erase(it);
+            }
+            else 
+            {
+                ++it;
+            }
+        }
 
         sort(matched_documents.begin(), matched_documents.end(),
             [](const Document& lhs, const Document& rhs) {
@@ -109,10 +132,11 @@ private:
 
     set<string> stop_words_;
     map<int, int> documents_rating_;
+    map<int, DocumentStatus> documents_status_;
 
     int document_count{ 0 };
 
-    int ComputeAverageRating(const vector<int>& ratings) const
+    static int ComputeAverageRating(const vector<int>& ratings)
     {
         if (ratings.empty())
         {
@@ -121,7 +145,9 @@ private:
 
         int sum = accumulate(ratings.begin(), ratings.end(), 0);
 
-        return sum / ratings.size();
+        int count = ratings.size();
+
+        return sum / count;
     }
 
     double GetWordTF(const vector<string>& words, const string& word) const
@@ -200,7 +226,7 @@ private:
 
             if (relevance > 0)
             {
-                matched_documents.push_back({ i, relevance, documents_rating_.at(i)});
+                matched_documents.push_back({ i, relevance, documents_rating_.at(i), documents_status_.at(i)});
             }
         }
 
@@ -246,19 +272,22 @@ SearchServer CreateSearchServer() {
     {
         string document = ReadLine();
 
-        int rating_count{ 0 };
-        cin >> rating_count;
+        string r;
+
+        getline(cin, r);
 
         vector<int> ratings;
 
-        for (int i = 0; i < rating_count; i++)
+        vector<string> rv = SplitIntoWords(r);
+
+        for (int i = 1; i < rv.size(); i++)
         {
-            int r;
-            cin >> r;
-            ratings.push_back(r);
+            ratings.push_back(stoi(rv[i]));
         }
 
-        search_server.AddDocument(document_id, document, ratings);
+        DocumentStatus status = DocumentStatus::ACTUAL;
+
+        search_server.AddDocument(document_id, document, status, ratings);
     }
 
     return search_server;
@@ -268,8 +297,7 @@ int main() {
     const SearchServer search_server = CreateSearchServer();
 
     const string query = ReadLine();
-    for (const auto& [document_id, relevance, rating] : search_server.FindTopDocuments(query)) {
-        cout << "{ document_id = "s << document_id << ", "
-            << "relevance = "s << relevance << " }"s << endl;
+    for (const auto& [document_id, relevance, rating, status] : search_server.FindTopDocuments(query)) {
+        cout << "{ document_id = "s << document_id << ", " << "relevance = "s << relevance << ", " << "rating = " << rating << " }"s << endl;
     }
 }
