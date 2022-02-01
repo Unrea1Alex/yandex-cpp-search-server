@@ -1,2 +1,0 @@
-D:\Yandex\repo\yandex-cpp-search-server\x64\Debug\yandex-cpp-search-server.exe
-D:\Yandex\yandex-cpp-search-server\x64\Debug\yandex-cpp-search-server.exe
