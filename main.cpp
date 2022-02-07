@@ -82,6 +82,11 @@ public:
 		return matched_documents;
 	}
 
+    vector<Document> FindTopDocuments(const string& raw_query, DocumentStatus doc_status) const
+    {
+            return FindTopDocuments(raw_query, [doc_status](int document_id, DocumentStatus status, int rating) { return status == doc_status; });
+    }
+
 	vector<Document> FindTopDocuments(const string& raw_query) const
 	{
 		return FindTopDocuments(raw_query, [](int document_id, DocumentStatus status, int rating) { return status == DocumentStatus::ACTUAL; });
@@ -388,6 +393,8 @@ void TestExcludeDocumentWithMinusWords()
 	{
 		const auto found_docs = server.FindTopDocuments("Reading"s);
 		assert(found_docs.size() == 2);
+        assert(found_docs[0].id == test_data[0].doc_id);
+        assert(found_docs[1].id == test_data[3].doc_id);
 	}
 
 	{
@@ -396,6 +403,16 @@ void TestExcludeDocumentWithMinusWords()
 		const Document& doc0 = found_docs[0];
 		assert(doc0.id == test_data[0].doc_id);
 	}
+
+    {
+        const auto found_docs = server.FindTopDocuments("-Reading -wide"s);
+        assert(found_docs.size() == 0);
+    }
+
+    {
+        const auto found_docs = server.FindTopDocuments(""s);
+        assert(found_docs.size() == 0);
+    }
 }
 
 void TestMatching()
@@ -407,9 +424,15 @@ void TestMatching()
 		const auto matching_words = server.MatchDocument("to help you understand reports, messages, short"s, 42);
 		const auto words = get<0>( matching_words);
 		assert(words.size() == 4);
-		//assert(words[0] == "to"s);
-		//assert(words[1] == "help"s);
+        assert(words[0] == "help"s);
+        assert(words[1] == "to"s);
 	}
+
+    {
+        const auto matching_words = server.MatchDocument("messages, short"s, 42);
+        const auto words = get<0>( matching_words);
+        assert(words.size() == 0);
+    }
 
 	{
 		const auto matching_words = server.MatchDocument("to help -you understand reports, messages, short"s, 42);
@@ -426,6 +449,8 @@ void TestRelevance()
 	{
 		const auto found_docs = server.FindTopDocuments("Reading"s);
 		assert(found_docs.size() == 2);
+        assert(found_docs[0].relevance > 0.0);
+        assert(found_docs[1].relevance > 0.0);
 		assert(found_docs[0].relevance >= found_docs[1].relevance);
 	}
 }
@@ -455,8 +480,22 @@ void TestPredicate()
 	{
 		const auto found_docs = server.FindTopDocuments("vocabulary"s, [doc_status](int document_id, DocumentStatus status, int rating) { return status == doc_status; });
 		assert(found_docs.size() == 1);
-		assert(found_docs[0].id == 17);
+        assert(found_docs[0].id == test_data[4].doc_id);
 	}
+
+    doc_status = DocumentStatus::REMOVED;
+
+    {
+        const auto found_docs = server.FindTopDocuments("vocabulary"s, [doc_status](int document_id, DocumentStatus status, int rating) { return status == doc_status; });
+        assert(found_docs.size() == 0);
+    }
+
+    doc_status = static_cast<DocumentStatus>(7);
+
+    {
+        const auto found_docs = server.FindTopDocuments("texts"s, [doc_status](int document_id, DocumentStatus status, int rating) { return status == doc_status; });
+        assert(found_docs.size() == 0);
+    }
 }
 
 void TestStatus()
@@ -469,9 +508,17 @@ void TestStatus()
 	{
 		const auto found_docs = server.FindTopDocuments("texts"s, doc_status);
 		assert(found_docs.size() == 2);
-		assert(found_docs[0].id == 16);
-		assert(found_docs[1].id == 18);
+        assert(found_docs[0].id == test_data[5].doc_id);
+        assert(found_docs[1].id == test_data[6].doc_id);
 	}
+
+    doc_status = DocumentStatus::BANNED;
+
+    {
+        const auto found_docs = server.FindTopDocuments("vocabulary"s, doc_status);
+        assert(found_docs.size() == 1);
+        assert(found_docs[0].id == test_data[4].doc_id);
+    }
 }
 
 void TestRelevanceCorrect()
