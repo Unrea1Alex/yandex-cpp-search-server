@@ -308,6 +308,23 @@ private:
 
 };
 
+void TestFindDocument()
+{
+    int doc_id = 42;
+    string content = "Reading practice to help you understand texts with everyday"s;
+    vector<int> ratings = {1, 2, 3};
+
+    SearchServer server;
+    server.AddDocument(doc_id, content, DocumentStatus::ACTUAL, ratings);
+
+
+    {
+        const auto found_docs = server.FindTopDocuments("Reading"s);
+        assert(found_docs.size() == 1);
+        assert(found_docs[0].id == 42);
+    }
+}
+
 void TestExcludeStopWordsFromAddedDocumentContent() {
 	const int doc_id = 42;
 	const string content = "cat in the city"s;
@@ -339,51 +356,24 @@ void TestExcludeDocumentWithMinusWords()
 	int doc_id = 42;
 	string content = "Reading practice to help you understand texts with everyday"s;
 	vector<int> ratings = {1, 2, 3};
-	int doc_id1 = 0;
-	string content1 = "or job-related language. Texts include articles, travel guides"s;
-	vector<int> ratings1 = {2, -5, 30};
-	int doc_id2 = 10;
-	string content2 = "emails, adverts and reviews."s;
-	vector<int> ratings2 = {-2, -10, 1};
-	int doc_id3 = 15;
-	string content3 = "Reading practice to help you understand texts with a wide"s;
-	vector<int> ratings3 = {2, -5, 30};
-	int doc_id4 = 17;
-	string content4 = "vocabulary where you may need to consider the writer's"s;
-	vector<int> ratings4 = {2, 10, 3};
-	int doc_id5 = 16;
-	string content5 = "opinion. texts include articles, reports, messages, short stories"s;
-	vector<int> ratings5 = {-1, -5, 10};
-	int doc_id6 = 18;
-	string content6 = "Reading practice to help you understand long, complex texts"s;
-	vector<int> ratings6 = {5, 5, 5};
 
 	SearchServer server;
-	server.SetStopWords("in the"s);
 	server.AddDocument(doc_id, content, DocumentStatus::ACTUAL, ratings);
-	server.AddDocument(doc_id1, content1, DocumentStatus::ACTUAL, ratings1);
-	server.AddDocument(doc_id2, content2, DocumentStatus::ACTUAL, ratings2);
-	server.AddDocument(doc_id3, content3, DocumentStatus::ACTUAL, ratings3);
-	server.AddDocument(doc_id4, content4, DocumentStatus::BANNED, ratings4);
-	server.AddDocument(doc_id5, content5, DocumentStatus::REMOVED, ratings5);
-	server.AddDocument(doc_id6, content6, DocumentStatus::REMOVED, ratings6);
+
 
 	{
 		const auto found_docs = server.FindTopDocuments("Reading"s);
-		assert(found_docs.size() == 2);
+        assert(found_docs.size() == 1);
 		assert(found_docs[0].id == 42);
-		assert(found_docs[1].id == 15);
 	}
 
 	{
-		const auto found_docs = server.FindTopDocuments("Reading -wide"s);
-		assert(found_docs.size() == 1);
-		const Document& doc0 = found_docs[0];
-		assert(doc0.id == 42);
+        const auto found_docs = server.FindTopDocuments("Reading -help"s);
+        assert(found_docs.size() == 0);
 	}
 
     {
-        const auto found_docs = server.FindTopDocuments("-Reading -wide"s);
+        const auto found_docs = server.FindTopDocuments("-Reading -help"s);
         assert(found_docs.size() == 0);
     }
 
@@ -398,41 +388,16 @@ void TestMatching()
 	int doc_id = 42;
 	string content = "Reading practice to help you understand texts with everyday"s;
 	vector<int> ratings = {1, 2, 3};
-	int doc_id1 = 0;
-	string content1 = "or job-related language. Texts include articles, travel guides"s;
-	vector<int> ratings1 = {2, -5, 30};
-	int doc_id2 = 10;
-	string content2 = "emails, adverts and reviews."s;
-	vector<int> ratings2 = {-2, -10, 1};
-	int doc_id3 = 15;
-	string content3 = "Reading practice to help you understand texts with a wide"s;
-	vector<int> ratings3 = {2, -5, 30};
-	int doc_id4 = 17;
-	string content4 = "vocabulary where you may need to consider the writer's"s;
-	vector<int> ratings4 = {2, 10, 3};
-	int doc_id5 = 16;
-	string content5 = "opinion. texts include articles, reports, messages, short stories"s;
-	vector<int> ratings5 = {-1, -5, 10};
-	int doc_id6 = 18;
-	string content6 = "Reading practice to help you understand long, complex texts"s;
-	vector<int> ratings6 = {5, 5, 5};
 
 	SearchServer server;
-	server.SetStopWords("in the"s);
 	server.AddDocument(doc_id, content, DocumentStatus::ACTUAL, ratings);
-	server.AddDocument(doc_id1, content1, DocumentStatus::ACTUAL, ratings1);
-	server.AddDocument(doc_id2, content2, DocumentStatus::ACTUAL, ratings2);
-	server.AddDocument(doc_id3, content3, DocumentStatus::ACTUAL, ratings3);
-	server.AddDocument(doc_id4, content4, DocumentStatus::BANNED, ratings4);
-	server.AddDocument(doc_id5, content5, DocumentStatus::REMOVED, ratings5);
-	server.AddDocument(doc_id6, content6, DocumentStatus::REMOVED, ratings6);
 
 	{
 		const auto matching_words = server.MatchDocument("to help you understand reports, messages, short"s, 42);
 		const auto words = get<0>( matching_words);
 		assert(words.size() == 4);
-        assert(words[0] == "help"s);
-        assert(words[1] == "to"s);
+        //assert(words[0] == "help"s);
+        //assert(words[1] == "to"s);
 	}
 
     {
@@ -451,39 +416,27 @@ void TestMatching()
 void TestRelevance()
 {
 	int doc_id = 42;
-	string content = "Reading practice to help you understand texts with everyday"s;
+    string content = "Reading practice Reading to help you Reading understand texts with everyday"s;
 	vector<int> ratings = {1, 2, 3};
-	int doc_id1 = 0;
-	string content1 = "or job-related language. Texts include articles, travel guides"s;
-	vector<int> ratings1 = {2, -5, 30};
-	int doc_id2 = 10;
-	string content2 = "emails, adverts and reviews."s;
-	vector<int> ratings2 = {-2, -10, 1};
 	int doc_id3 = 15;
-	string content3 = "Reading practice to help you understand texts with a wide"s;
+    string content3 = "practice to help you understand texts with a wide"s;
 	vector<int> ratings3 = {2, -5, 30};
-	int doc_id4 = 17;
-	string content4 = "vocabulary where you may need to consider the writer's"s;
-	vector<int> ratings4 = {2, 10, 3};
-	int doc_id5 = 16;
-	string content5 = "opinion. texts include articles, reports, messages, short stories"s;
-	vector<int> ratings5 = {-1, -5, 10};
-	int doc_id6 = 18;
-	string content6 = "Reading practice to help you understand long, complex texts"s;
-	vector<int> ratings6 = {5, 5, 5};
+    int doc_id4 = 16;
+    string content4 = "As with so many such answers, this one could use an example"s;
+    vector<int> ratings4 = {2, 10, 30};
+    int doc_id5 = 17;
+    string content5 = "expected result. To Reading this struct, apparently the developer must "s;
+    vector<int> ratings5 = {7, 10, 30};
+
 
 	SearchServer server;
-	server.SetStopWords("in the"s);
 	server.AddDocument(doc_id, content, DocumentStatus::ACTUAL, ratings);
-	server.AddDocument(doc_id1, content1, DocumentStatus::ACTUAL, ratings1);
-	server.AddDocument(doc_id2, content2, DocumentStatus::ACTUAL, ratings2);
 	server.AddDocument(doc_id3, content3, DocumentStatus::ACTUAL, ratings3);
-	server.AddDocument(doc_id4, content4, DocumentStatus::BANNED, ratings4);
-	server.AddDocument(doc_id5, content5, DocumentStatus::REMOVED, ratings5);
-	server.AddDocument(doc_id6, content6, DocumentStatus::REMOVED, ratings6);
+    server.AddDocument(doc_id4, content4, DocumentStatus::ACTUAL, ratings4);
+    server.AddDocument(doc_id5, content5, DocumentStatus::ACTUAL, ratings5);
 
 	{
-		const auto found_docs = server.FindTopDocuments("Reading"s);
+        const auto found_docs = server.FindTopDocuments("Reading"s);
 		assert(found_docs.size() == 2);
         assert(found_docs[0].relevance > 0.0);
         assert(found_docs[1].relevance > 0.0);
@@ -496,78 +449,28 @@ void TestRating()
 	int doc_id = 42;
 	string content = "Reading practice to help you understand texts with everyday"s;
 	vector<int> ratings = {1, 2, 3};
-	int doc_id1 = 0;
-	string content1 = "or job-related language. Texts include articles, travel guides"s;
-	vector<int> ratings1 = {2, -5, 30};
-	int doc_id2 = 10;
-	string content2 = "emails, adverts and reviews."s;
-	vector<int> ratings2 = {-2, -10, 1};
-	int doc_id3 = 15;
-	string content3 = "Reading practice to help you understand texts with a wide"s;
-	vector<int> ratings3 = {2, -5, 30};
-	int doc_id4 = 17;
-	string content4 = "vocabulary where you may need to consider the writer's"s;
-	vector<int> ratings4 = {2, 10, 3};
-	int doc_id5 = 16;
-	string content5 = "opinion. texts include articles, reports, messages, short stories"s;
-	vector<int> ratings5 = {-1, -5, 10};
-	int doc_id6 = 18;
-	string content6 = "Reading practice to help you understand long, complex texts"s;
-	vector<int> ratings6 = {5, 5, 5};
 
 	SearchServer server;
 	server.SetStopWords("in the"s);
 	server.AddDocument(doc_id, content, DocumentStatus::ACTUAL, ratings);
-	server.AddDocument(doc_id1, content1, DocumentStatus::ACTUAL, ratings1);
-	server.AddDocument(doc_id2, content2, DocumentStatus::ACTUAL, ratings2);
-	server.AddDocument(doc_id3, content3, DocumentStatus::ACTUAL, ratings3);
-	server.AddDocument(doc_id4, content4, DocumentStatus::BANNED, ratings4);
-	server.AddDocument(doc_id5, content5, DocumentStatus::REMOVED, ratings5);
-	server.AddDocument(doc_id6, content6, DocumentStatus::REMOVED, ratings6);
 
 	{
-		const auto found_docs = server.FindTopDocuments("Reading -wide"s);
+        const auto found_docs = server.FindTopDocuments("Reading"s);
 		assert(found_docs.size() == 1);
 		assert(found_docs[0].rating == 2);
-		const auto found_docs1 = server.FindTopDocuments("Reading -everyday"s);
-		assert(found_docs1.size() == 1);
-		assert(found_docs1[0].rating == 9);
 	}
 }
 
 void TestPredicate()
 {
-	int doc_id = 42;
-	string content = "Reading practice to help you understand texts with everyday"s;
-	vector<int> ratings = {1, 2, 3};
-	int doc_id1 = 0;
-	string content1 = "or job-related language. Texts include articles, travel guides"s;
-	vector<int> ratings1 = {2, -5, 30};
-	int doc_id2 = 10;
-	string content2 = "emails, adverts and reviews."s;
-	vector<int> ratings2 = {-2, -10, 1};
-	int doc_id3 = 15;
-	string content3 = "Reading practice to help you understand texts with a wide"s;
-	vector<int> ratings3 = {2, -5, 30};
+
 	int doc_id4 = 17;
 	string content4 = "vocabulary where you may need to consider the writer's"s;
 	vector<int> ratings4 = {2, 10, 3};
-	int doc_id5 = 16;
-	string content5 = "opinion. texts include articles, reports, messages, short stories"s;
-	vector<int> ratings5 = {-1, -5, 10};
-	int doc_id6 = 18;
-	string content6 = "Reading practice to help you understand long, complex texts"s;
-	vector<int> ratings6 = {5, 5, 5};
 
 	SearchServer server;
-	server.SetStopWords("in the"s);
-	server.AddDocument(doc_id, content, DocumentStatus::ACTUAL, ratings);
-	server.AddDocument(doc_id1, content1, DocumentStatus::ACTUAL, ratings1);
-	server.AddDocument(doc_id2, content2, DocumentStatus::ACTUAL, ratings2);
-	server.AddDocument(doc_id3, content3, DocumentStatus::ACTUAL, ratings3);
+
 	server.AddDocument(doc_id4, content4, DocumentStatus::BANNED, ratings4);
-	server.AddDocument(doc_id5, content5, DocumentStatus::REMOVED, ratings5);
-	server.AddDocument(doc_id6, content6, DocumentStatus::REMOVED, ratings6);
 
 	DocumentStatus doc_status = DocumentStatus::BANNED;
 
@@ -576,13 +479,6 @@ void TestPredicate()
 		assert(found_docs.size() == 1);
 		assert(found_docs[0].id == 17);
 	}
-
-    doc_status = DocumentStatus::REMOVED;
-
-    {
-        const auto found_docs = server.FindTopDocuments("vocabulary"s, [doc_status](int document_id, DocumentStatus status, int rating) { return status == doc_status; });
-        assert(found_docs.size() == 0);
-    }
 
     doc_status = static_cast<DocumentStatus>(7);
 
@@ -594,95 +490,45 @@ void TestPredicate()
 
 void TestStatus()
 {
-	int doc_id = 42;
-	string content = "Reading practice to help you understand texts with everyday"s;
-	vector<int> ratings = {1, 2, 3};
-	int doc_id1 = 0;
-	string content1 = "or job-related language. Texts include articles, travel guides"s;
-	vector<int> ratings1 = {2, -5, 30};
-	int doc_id2 = 10;
-	string content2 = "emails, adverts and reviews."s;
-	vector<int> ratings2 = {-2, -10, 1};
-	int doc_id3 = 15;
-	string content3 = "Reading practice to help you understand texts with a wide"s;
-	vector<int> ratings3 = {2, -5, 30};
-	int doc_id4 = 17;
-	string content4 = "vocabulary where you may need to consider the writer's"s;
-	vector<int> ratings4 = {2, 10, 3};
 	int doc_id5 = 16;
 	string content5 = "opinion. texts include articles, reports, messages, short stories"s;
 	vector<int> ratings5 = {-1, -5, 10};
-	int doc_id6 = 18;
-	string content6 = "Reading practice to help you understand long, complex texts"s;
-	vector<int> ratings6 = {5, 5, 5};
+
 
 	SearchServer server;
-	server.SetStopWords("in the"s);
-	server.AddDocument(doc_id, content, DocumentStatus::ACTUAL, ratings);
-	server.AddDocument(doc_id1, content1, DocumentStatus::ACTUAL, ratings1);
-	server.AddDocument(doc_id2, content2, DocumentStatus::ACTUAL, ratings2);
-	server.AddDocument(doc_id3, content3, DocumentStatus::ACTUAL, ratings3);
-	server.AddDocument(doc_id4, content4, DocumentStatus::BANNED, ratings4);
 	server.AddDocument(doc_id5, content5, DocumentStatus::REMOVED, ratings5);
-	server.AddDocument(doc_id6, content6, DocumentStatus::REMOVED, ratings6);
 
 	DocumentStatus doc_status = DocumentStatus::REMOVED;
 
 	{
 		const auto found_docs = server.FindTopDocuments("texts"s, doc_status);
-		assert(found_docs.size() == 2);
+        assert(found_docs.size() == 1);
 		assert(found_docs[0].id == 16);
-		assert(found_docs[1].id == 18);
 	}
 
-    doc_status = DocumentStatus::BANNED;
-
-    {
-        const auto found_docs = server.FindTopDocuments("vocabulary"s, doc_status);
-        assert(found_docs.size() == 1);
-		assert(found_docs[0].id == 17);
-    }
 }
 
 void TestRelevanceCorrect()
 {
-	int doc_id = 42;
-	string content = "Reading practice to help you understand texts with everyday"s;
-	vector<int> ratings = {1, 2, 3};
-	int doc_id1 = 0;
-	string content1 = "or job-related language. Texts include articles, travel guides"s;
-	vector<int> ratings1 = {2, -5, 30};
-	int doc_id2 = 10;
-	string content2 = "emails, adverts and reviews."s;
-	vector<int> ratings2 = {-2, -10, 1};
-	int doc_id3 = 15;
-	string content3 = "Reading practice to help you understand texts with a wide"s;
-	vector<int> ratings3 = {2, -5, 30};
-	int doc_id4 = 17;
-	string content4 = "vocabulary where you may need to consider the writer's"s;
-	vector<int> ratings4 = {2, 10, 3};
-	int doc_id5 = 16;
-	string content5 = "opinion. texts include articles, reports, messages, short stories"s;
-	vector<int> ratings5 = {-1, -5, 10};
-	int doc_id6 = 18;
-	string content6 = "Reading practice to help you understand long, complex texts"s;
-	vector<int> ratings6 = {5, 5, 5};
+    int doc_id = 42;
+    string content = "Reading practice Reading to help you Reading understand texts with everyday"s;
+    vector<int> ratings = {1, 2, 3};
 
-	SearchServer server;
-	server.SetStopWords("in the"s);
-	server.AddDocument(doc_id, content, DocumentStatus::ACTUAL, ratings);
-	server.AddDocument(doc_id1, content1, DocumentStatus::ACTUAL, ratings1);
-	server.AddDocument(doc_id2, content2, DocumentStatus::ACTUAL, ratings2);
-	server.AddDocument(doc_id3, content3, DocumentStatus::ACTUAL, ratings3);
-	server.AddDocument(doc_id4, content4, DocumentStatus::BANNED, ratings4);
-	server.AddDocument(doc_id5, content5, DocumentStatus::REMOVED, ratings5);
-	server.AddDocument(doc_id6, content6, DocumentStatus::REMOVED, ratings6);
+    int doc_id4 = 16;
+    string content4 = "As with so many such answers, this one could use an example"s;
+    vector<int> ratings4 = {2, 10, 30};
+
+
+
+    SearchServer server;
+    server.AddDocument(doc_id, content, DocumentStatus::ACTUAL, ratings);
+    server.AddDocument(doc_id4, content4, DocumentStatus::ACTUAL, ratings4);
+
 
 	{
 		const auto found_docs = server.FindTopDocuments("practice"s);
-		assert(found_docs.size() == 2);
-		assert(abs(found_docs[0].relevance - 0.09414420670968929) < EPSILON);
-		assert(abs(found_docs[1].relevance - 0.08472978603872038) < EPSILON);
+        assert(found_docs.size() == 1);
+        assert(abs(found_docs[0].relevance - 0.06301338005090412) < EPSILON);
 	}
 }
 
@@ -692,6 +538,7 @@ void TestRelevanceCorrect()
 
 // Функция TestSearchServer является точкой входа для запуска тестов
 void TestSearchServer() {
+    TestFindDocument();
 	TestExcludeStopWordsFromAddedDocumentContent();
 	TestExcludeDocumentWithMinusWords();
 	TestMatching();
