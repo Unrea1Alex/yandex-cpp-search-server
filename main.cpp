@@ -9,11 +9,113 @@
 #include <numeric>
 #include <cassert>
 #include <utility>
+#include <cstdlib>
+#include <iomanip>
+#include <sstream>
 
 using namespace std;
 
 const int MAX_RESULT_DOCUMENT_COUNT = 5;
 const double EPSILON = 1e-6;
+
+template <typename T, typename U>
+ostream& operator<<(ostream& stream,const pair<T,U>& item)
+{
+	stream << item.first << ": " << item.second;
+	return stream;
+}
+
+template <typename T>
+string Print(const T& container)
+{
+	bool is_first = true;
+	ostringstream ss;
+
+	for(const auto& item : container)
+	{
+		if(!is_first)
+			ss << ", ";
+
+		is_first = false;
+
+		ss << item;
+	}
+
+	return ss.str();
+}
+
+template <typename T>
+ostream& operator<<(ostream& stream, const vector<T>& container)
+{
+	stream << "[";
+	stream << Print(container);
+	stream << "]";
+	return stream;
+}
+
+template <typename T>
+ostream& operator<<(ostream& stream, const set<T>& container)
+{
+	stream << "{";
+	stream << Print(container);
+	stream << "}";
+	return stream;
+}
+
+template <typename T, typename U>
+ostream& operator<<(ostream& stream, const map<T, U>& container)
+{
+	stream << "{";
+	stream << Print(container);
+	stream << "}";
+	return stream;
+}
+
+template <typename T, typename U>
+void AssertEqualImpl(const T& t, const U& u, const string& t_str, const string& u_str, const string& file,
+					 const string& func, unsigned line, const string& hint) {
+	if (t != u) {
+		cout << boolalpha;
+		cout << file << "("s << line << "): "s << func << ": "s;
+		cout << "ASSERT_EQUAL("s << t_str << ", "s << u_str << ") failed: "s;
+		cout << t << " != "s << u << "."s;
+		if (!hint.empty()) {
+			cout << " Hint: "s << hint;
+		}
+		cout << endl;
+		abort();
+	}
+}
+
+#define ASSERT_EQUAL(a, b) AssertEqualImpl((a), (b), #a, #b, __FILE__, __FUNCTION__, __LINE__, ""s)
+
+#define ASSERT_EQUAL_HINT(a, b, hint) AssertEqualImpl((a), (b), #a, #b, __FILE__, __FUNCTION__, __LINE__, (hint))
+
+void AssertImpl(bool value, const string& expr_str, const string& file, const string& func, unsigned line,
+				const string& hint) {
+	if (!value) {
+		cout << file << "("s << line << "): "s << func << ": "s;
+		cout << "ASSERT("s << expr_str << ") failed."s;
+		if (!hint.empty()) {
+			cout << " Hint: "s << hint;
+		}
+		cout << endl;
+		abort();
+	}
+}
+
+#define ASSERT(expr) AssertImpl(!!(expr), #expr, __FILE__, __FUNCTION__, __LINE__, ""s)
+
+#define ASSERT_HINT(expr, hint) AssertImpl(!!(expr), #expr, __FILE__, __FUNCTION__, __LINE__, (hint))
+
+template <typename T, typename F>
+void RunTestImpl(T funcname, F func)
+{
+	func();
+	cerr << funcname << " OK" << endl;
+}
+
+#define RUN_TEST(func) RunTestImpl(#func, func)  // напишите недостающий код
 
 string ReadLine()
 {
@@ -29,8 +131,6 @@ int ReadLineWithNumber()
 	ReadLine();
 	return result;
 }
-
-
 
 struct Document
 {
@@ -317,11 +417,10 @@ void TestFindDocument()
     SearchServer server;
     server.AddDocument(doc_id, content, DocumentStatus::ACTUAL, ratings);
 
-
     {
         const auto found_docs = server.FindTopDocuments("Reading"s);
-        assert(found_docs.size() == 1);
-        assert(found_docs[0].id == 42);
+		ASSERT_EQUAL(found_docs.size(), 1);
+		ASSERT_EQUAL(found_docs[0].id, 42);
     }
 }
 
@@ -335,9 +434,9 @@ void TestExcludeStopWordsFromAddedDocumentContent() {
 		SearchServer server;
 		server.AddDocument(doc_id, content, DocumentStatus::ACTUAL, ratings);
 		const auto found_docs = server.FindTopDocuments("in"s);
-		assert(found_docs.size() == 1);
+		ASSERT_EQUAL(found_docs.size(), 1);
 		const Document& doc0 = found_docs[0];
-		assert(doc0.id == doc_id);
+		ASSERT_EQUAL(doc0.id, doc_id);
 	}
 
 	// Затем убеждаемся, что поиск этого же слова, входящего в список стоп-слов,
@@ -346,7 +445,7 @@ void TestExcludeStopWordsFromAddedDocumentContent() {
 		SearchServer server;
 		server.SetStopWords("in the"s);
 		server.AddDocument(doc_id, content, DocumentStatus::ACTUAL, ratings);
-		assert(server.FindTopDocuments("in"s).empty());
+		ASSERT_HINT(server.FindTopDocuments("in"s).empty(), "Documents vector must be empty");
 	}
 }
 
@@ -363,23 +462,23 @@ void TestExcludeDocumentWithMinusWords()
 
 	{
 		const auto found_docs = server.FindTopDocuments("Reading"s);
-        assert(found_docs.size() == 1);
-		assert(found_docs[0].id == 42);
+		ASSERT_EQUAL(found_docs.size(), 1);
+		ASSERT_EQUAL(found_docs[0].id, 42);
 	}
 
 	{
         const auto found_docs = server.FindTopDocuments("Reading -help"s);
-        assert(found_docs.size() == 0);
+		ASSERT_HINT(found_docs.empty(), "Documents vector must be empty");
 	}
 
     {
         const auto found_docs = server.FindTopDocuments("-Reading -help"s);
-        assert(found_docs.size() == 0);
+		ASSERT_HINT(found_docs.empty(), "Documents vector must be empty");
     }
 
     {
         const auto found_docs = server.FindTopDocuments(""s);
-        assert(found_docs.size() == 0);
+		ASSERT_HINT(found_docs.empty(), "Documents vector must be empty");
     }
 }
 
@@ -395,7 +494,7 @@ void TestMatching()
 	{
 		const auto matching_words = server.MatchDocument("to help you understand reports, messages, short"s, 42);
 		const auto words = get<0>( matching_words);
-		assert(words.size() == 4);
+		ASSERT_EQUAL(words.size(), 4);
         //assert(words[0] == "help"s);
         //assert(words[1] == "to"s);
 	}
@@ -403,13 +502,13 @@ void TestMatching()
     {
         const auto matching_words = server.MatchDocument("messages, short"s, 42);
         const auto words = get<0>( matching_words);
-        assert(words.size() == 0);
+		ASSERT_EQUAL(words.size(), 0);
     }
 
 	{
 		const auto matching_words = server.MatchDocument("to help -you understand reports, messages, short"s, 42);
 		const auto words = get<0>( matching_words);
-		assert(words.size() == 0);
+		ASSERT_EQUAL(words.size(), 0);
 	}
 }
 
@@ -437,10 +536,10 @@ void TestRelevance()
 
 	{
         const auto found_docs = server.FindTopDocuments("Reading"s);
-		assert(found_docs.size() == 2);
-        assert(found_docs[0].relevance > 0.0);
-        assert(found_docs[1].relevance > 0.0);
-		assert(found_docs[0].relevance >= found_docs[1].relevance);
+		ASSERT_EQUAL(found_docs.size(), 2);
+		ASSERT_HINT(found_docs[0].relevance > 0.0, "Relevance first document must be greater than 0");
+		ASSERT_HINT(found_docs[1].relevance > 0.0, "Relevance second document must be greater than 0");
+		ASSERT_HINT(found_docs[0].relevance >= found_docs[1].relevance, "Relevance first document must be greater than or equal to second document");
 	}
 }
 
@@ -456,8 +555,8 @@ void TestRating()
 
 	{
         const auto found_docs = server.FindTopDocuments("Reading"s);
-		assert(found_docs.size() == 1);
-		assert(found_docs[0].rating == 2);
+		ASSERT_EQUAL(found_docs.size(), 1);
+		ASSERT_EQUAL(found_docs[0].rating, 2);
 	}
 }
 
@@ -476,15 +575,15 @@ void TestPredicate()
 
 	{
 		const auto found_docs = server.FindTopDocuments("vocabulary"s, [doc_status](int document_id, DocumentStatus status, int rating) { return status == doc_status; });
-		assert(found_docs.size() == 1);
-		assert(found_docs[0].id == 17);
+		ASSERT_EQUAL(found_docs.size(), 1);
+		ASSERT_EQUAL(found_docs[0].id, 17);
 	}
 
     doc_status = static_cast<DocumentStatus>(7);
 
     {
         const auto found_docs = server.FindTopDocuments("texts"s, [doc_status](int document_id, DocumentStatus status, int rating) { return status == doc_status; });
-        assert(found_docs.size() == 0);
+		ASSERT_EQUAL(found_docs.size(), 0);
     }
 }
 
@@ -502,8 +601,8 @@ void TestStatus()
 
 	{
 		const auto found_docs = server.FindTopDocuments("texts"s, doc_status);
-        assert(found_docs.size() == 1);
-		assert(found_docs[0].id == 16);
+		ASSERT_EQUAL(found_docs.size(), 1);
+		ASSERT_EQUAL(found_docs[0].id, 16);
 	}
 
 }
@@ -527,8 +626,8 @@ void TestRelevanceCorrect()
 
 	{
 		const auto found_docs = server.FindTopDocuments("practice"s);
-        assert(found_docs.size() == 1);
-        assert(abs(found_docs[0].relevance - 0.06301338005090412) < EPSILON);
+		ASSERT_EQUAL(found_docs.size(), 1);
+		ASSERT(abs(found_docs[0].relevance - 0.06301338005090412) < EPSILON);
 	}
 }
 
@@ -538,15 +637,15 @@ void TestRelevanceCorrect()
 
 // Функция TestSearchServer является точкой входа для запуска тестов
 void TestSearchServer() {
-    TestFindDocument();
-	TestExcludeStopWordsFromAddedDocumentContent();
-	TestExcludeDocumentWithMinusWords();
-	TestMatching();
-	TestRelevance();
-	TestRating();
-	TestPredicate();
-	TestStatus();
-	TestRelevanceCorrect();
+	RUN_TEST(TestFindDocument);
+	RUN_TEST(TestExcludeStopWordsFromAddedDocumentContent);
+	RUN_TEST(TestExcludeDocumentWithMinusWords);
+	RUN_TEST(TestMatching);
+	RUN_TEST(TestRelevance);
+	RUN_TEST(TestRating);
+	RUN_TEST(TestPredicate);
+	RUN_TEST(TestStatus);
+	RUN_TEST(TestRelevanceCorrect);
 	// Не забудьте вызывать остальные тесты здесь
 }
 
