@@ -182,16 +182,15 @@ public:
 		return matched_documents;
 	}
 
-    vector<Document> FindTopDocuments(const string& raw_query, DocumentStatus doc_status) const
-    {
-            return FindTopDocuments(raw_query, [doc_status](int document_id, DocumentStatus status, int rating) { return status == doc_status; });
-    }
+	vector<Document> FindTopDocuments(const string& raw_query, DocumentStatus doc_status) const
+	{
+		return FindTopDocuments(raw_query, [doc_status](int document_id, DocumentStatus status, int rating) { return status == doc_status; });
+	}
 
 	vector<Document> FindTopDocuments(const string& raw_query) const
 	{
 		return FindTopDocuments(raw_query, [](int document_id, DocumentStatus status, int rating) { return status == DocumentStatus::ACTUAL; });
 	}
-
 
 	int GetDocumentCount() const
 	{
@@ -410,26 +409,25 @@ private:
 
 void TestFindDocument()
 {
-    int doc_id = 42;
-    string content = "Reading practice to help you understand texts with everyday"s;
-    vector<int> ratings = {1, 2, 3};
+	int doc_id = 42;
+	string content = "Reading practice to help you understand texts with everyday"s;
+	vector<int> ratings = {1, 2, 3};
 
-    SearchServer server;
-    server.AddDocument(doc_id, content, DocumentStatus::ACTUAL, ratings);
+	SearchServer server;
+	server.AddDocument(doc_id, content, DocumentStatus::ACTUAL, ratings);
 
-    {
-        const auto found_docs = server.FindTopDocuments("Reading"s);
+	{
+		const auto found_docs = server.FindTopDocuments("Reading"s);
 		ASSERT_EQUAL(found_docs.size(), 1);
 		ASSERT_EQUAL(found_docs[0].id, 42);
-    }
+	}
 }
 
 void TestExcludeStopWordsFromAddedDocumentContent() {
 	const int doc_id = 42;
 	const string content = "cat in the city"s;
 	const vector<int> ratings = {1, 2, 3};
-	// Сначала убеждаемся, что поиск слова, не входящего в список стоп-слов,
-	// находит нужный документ
+
 	{
 		SearchServer server;
 		server.AddDocument(doc_id, content, DocumentStatus::ACTUAL, ratings);
@@ -439,8 +437,6 @@ void TestExcludeStopWordsFromAddedDocumentContent() {
 		ASSERT_EQUAL(doc0.id, doc_id);
 	}
 
-	// Затем убеждаемся, что поиск этого же слова, входящего в список стоп-слов,
-	// возвращает пустой результат
 	{
 		SearchServer server;
 		server.SetStopWords("in the"s);
@@ -459,7 +455,6 @@ void TestExcludeDocumentWithMinusWords()
 	SearchServer server;
 	server.AddDocument(doc_id, content, DocumentStatus::ACTUAL, ratings);
 
-
 	{
 		const auto found_docs = server.FindTopDocuments("Reading"s);
 		ASSERT_EQUAL(found_docs.size(), 1);
@@ -467,19 +462,19 @@ void TestExcludeDocumentWithMinusWords()
 	}
 
 	{
-        const auto found_docs = server.FindTopDocuments("Reading -help"s);
+		const auto found_docs = server.FindTopDocuments("Reading -help"s);
 		ASSERT_HINT(found_docs.empty(), "Documents vector must be empty");
 	}
 
-    {
-        const auto found_docs = server.FindTopDocuments("-Reading -help"s);
+	{
+		const auto found_docs = server.FindTopDocuments("-Reading -help"s);
 		ASSERT_HINT(found_docs.empty(), "Documents vector must be empty");
-    }
+	}
 
-    {
-        const auto found_docs = server.FindTopDocuments(""s);
+	{
+		const auto found_docs = server.FindTopDocuments(""s);
 		ASSERT_HINT(found_docs.empty(), "Documents vector must be empty");
-    }
+	}
 }
 
 void TestMatching()
@@ -495,15 +490,15 @@ void TestMatching()
 		const auto matching_words = server.MatchDocument("to help you understand reports, messages, short"s, 42);
 		const auto words = get<0>( matching_words);
 		ASSERT_EQUAL(words.size(), 4);
-        //assert(words[0] == "help"s);
-        //assert(words[1] == "to"s);
+		//assert(words[0] == "help"s);
+		//assert(words[1] == "to"s);
 	}
 
-    {
-        const auto matching_words = server.MatchDocument("messages, short"s, 42);
-        const auto words = get<0>( matching_words);
+	{
+		const auto matching_words = server.MatchDocument("messages, short"s, 42);
+		const auto words = get<0>( matching_words);
 		ASSERT_EQUAL(words.size(), 0);
-    }
+	}
 
 	{
 		const auto matching_words = server.MatchDocument("to help -you understand reports, messages, short"s, 42);
@@ -515,27 +510,26 @@ void TestMatching()
 void TestRelevance()
 {
 	int doc_id = 42;
-    string content = "Reading practice Reading to help you Reading understand texts with everyday"s;
+	string content = "Reading practice Reading to help you Reading understand texts with everyday"s;
 	vector<int> ratings = {1, 2, 3};
 	int doc_id3 = 15;
-    string content3 = "practice to help you understand texts with a wide"s;
+	string content3 = "practice to help you understand texts with a wide"s;
 	vector<int> ratings3 = {2, -5, 30};
-    int doc_id4 = 16;
-    string content4 = "As with so many such answers, this one could use an example"s;
-    vector<int> ratings4 = {2, 10, 30};
-    int doc_id5 = 17;
-    string content5 = "expected result. To Reading this struct, apparently the developer must "s;
-    vector<int> ratings5 = {7, 10, 30};
-
+	int doc_id4 = 16;
+	string content4 = "As with so many such answers, this one could use an example"s;
+	vector<int> ratings4 = {2, 10, 30};
+	int doc_id5 = 17;
+	string content5 = "expected result. To Reading this struct, apparently the developer must "s;
+	vector<int> ratings5 = {7, 10, 30};
 
 	SearchServer server;
 	server.AddDocument(doc_id, content, DocumentStatus::ACTUAL, ratings);
 	server.AddDocument(doc_id3, content3, DocumentStatus::ACTUAL, ratings3);
-    server.AddDocument(doc_id4, content4, DocumentStatus::ACTUAL, ratings4);
-    server.AddDocument(doc_id5, content5, DocumentStatus::ACTUAL, ratings5);
+	server.AddDocument(doc_id4, content4, DocumentStatus::ACTUAL, ratings4);
+	server.AddDocument(doc_id5, content5, DocumentStatus::ACTUAL, ratings5);
 
 	{
-        const auto found_docs = server.FindTopDocuments("Reading"s);
+		const auto found_docs = server.FindTopDocuments("Reading"s);
 		ASSERT_EQUAL(found_docs.size(), 2);
 		ASSERT_HINT(found_docs[0].relevance > 0.0, "Relevance first document must be greater than 0");
 		ASSERT_HINT(found_docs[1].relevance > 0.0, "Relevance second document must be greater than 0");
@@ -554,7 +548,7 @@ void TestRating()
 	server.AddDocument(doc_id, content, DocumentStatus::ACTUAL, ratings);
 
 	{
-        const auto found_docs = server.FindTopDocuments("Reading"s);
+		const auto found_docs = server.FindTopDocuments("Reading"s);
 		ASSERT_EQUAL(found_docs.size(), 1);
 		ASSERT_EQUAL(found_docs[0].rating, 2);
 	}
@@ -579,12 +573,12 @@ void TestPredicate()
 		ASSERT_EQUAL(found_docs[0].id, 17);
 	}
 
-    doc_status = static_cast<DocumentStatus>(7);
+	doc_status = static_cast<DocumentStatus>(7);
 
-    {
-        const auto found_docs = server.FindTopDocuments("texts"s, [doc_status](int document_id, DocumentStatus status, int rating) { return status == doc_status; });
+	{
+		const auto found_docs = server.FindTopDocuments("texts"s, [doc_status](int document_id, DocumentStatus status, int rating) { return status == doc_status; });
 		ASSERT_EQUAL(found_docs.size(), 0);
-    }
+	}
 }
 
 void TestStatus()
@@ -592,7 +586,6 @@ void TestStatus()
 	int doc_id5 = 16;
 	string content5 = "opinion. texts include articles, reports, messages, short stories"s;
 	vector<int> ratings5 = {-1, -5, 10};
-
 
 	SearchServer server;
 	server.AddDocument(doc_id5, content5, DocumentStatus::REMOVED, ratings5);
@@ -609,20 +602,17 @@ void TestStatus()
 
 void TestRelevanceCorrect()
 {
-    int doc_id = 42;
-    string content = "Reading practice Reading to help you Reading understand texts with everyday"s;
-    vector<int> ratings = {1, 2, 3};
+	int doc_id = 42;
+	string content = "Reading practice Reading to help you Reading understand texts with everyday"s;
+	vector<int> ratings = {1, 2, 3};
 
-    int doc_id4 = 16;
-    string content4 = "As with so many such answers, this one could use an example"s;
-    vector<int> ratings4 = {2, 10, 30};
+	int doc_id4 = 16;
+	string content4 = "As with so many such answers, this one could use an example"s;
+	vector<int> ratings4 = {2, 10, 30};
 
-
-
-    SearchServer server;
-    server.AddDocument(doc_id, content, DocumentStatus::ACTUAL, ratings);
-    server.AddDocument(doc_id4, content4, DocumentStatus::ACTUAL, ratings4);
-
+	SearchServer server;
+	server.AddDocument(doc_id, content, DocumentStatus::ACTUAL, ratings);
+	server.AddDocument(doc_id4, content4, DocumentStatus::ACTUAL, ratings4);
 
 	{
 		const auto found_docs = server.FindTopDocuments("practice"s);
@@ -631,11 +621,6 @@ void TestRelevanceCorrect()
 	}
 }
 
-/*
-Разместите код остальных тестов здесь
-*/
-
-// Функция TestSearchServer является точкой входа для запуска тестов
 void TestSearchServer() {
 	RUN_TEST(TestFindDocument);
 	RUN_TEST(TestExcludeStopWordsFromAddedDocumentContent);
@@ -646,56 +631,9 @@ void TestSearchServer() {
 	RUN_TEST(TestPredicate);
 	RUN_TEST(TestStatus);
 	RUN_TEST(TestRelevanceCorrect);
-	// Не забудьте вызывать остальные тесты здесь
 }
-
-// --------- Окончание модульных тестов поисковой системы -----------
 
 int main() {
 	TestSearchServer();
-	// Если вы видите эту строку, значит все тесты прошли успешно
 	cout << "Search server testing finished"s << endl;
 }
-
-
-/*// ==================== для примера =========================
-void PrintDocument(const Document& document) {
-	cout << "{ "s
-		 << "document_id = "s << document.id << ", "s
-		 << "relevance = "s << document.relevance << ", "s
-		 << "rating = "s << document.rating
-		 << " }"s << endl;
-}
-
-int main() {
-	SearchServer search_server;
-	search_server.SetStopWords("и в на"s);
-
-	search_server.AddDocument(0, "белый кот и модный ошейник"s,        DocumentStatus::ACTUAL, {8, -3});
-	search_server.AddDocument(1, "пушистый кот пушистый хвост"s,       DocumentStatus::ACTUAL, {7, 2, 7});
-	search_server.AddDocument(2, "ухоженный пёс выразительные глаза"s, DocumentStatus::BANNED, {5, -12, 2, 1});
-	search_server.AddDocument(3, "ухоженный скворец евгений"s,         DocumentStatus::BANNED, {9});
-
-	cout << "ACTUAL by default:"s << endl;
-	for (const Document& document : search_server.FindTopDocuments("пушистый ухоженный кот"s))
-	{
-		PrintDocument(document);
-	}
-
-	cout << "ACTUAL:"s << endl;
-	for (const Document& document : search_server.FindTopDocuments("пушистый ухоженный кот"s, [](int document_id, DocumentStatus status, int rating) { return status == DocumentStatus::BANNED; })) {
-		PrintDocument(document);
-	}
-
-	cout << "Even ids:"s << endl;
-	for (const Document& document : search_server.FindTopDocuments("пушистый ухоженный кот"s, [](int document_id, DocumentStatus status, int rating) { return document_id % 2 == 0; })) {
-		PrintDocument(document);
-	}
-
-	cout << "Even ids:"s << endl;
-	for (const Document& document : search_server.FindTopDocuments("пушистый ухоженный кот"s, [](int document_id, DocumentStatus status, int rating) { return rating >= 5; })) {
-		PrintDocument(document);
-	}
-
-	return 0;
-}*/
