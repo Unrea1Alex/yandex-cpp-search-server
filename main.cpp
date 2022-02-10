@@ -150,6 +150,27 @@ enum class DocumentStatus
 class SearchServer
 {
 public:
+
+	SearchServer(){};
+
+	explicit SearchServer(const string& words)
+	{
+		vector<string> sv = SplitIntoWords(words);
+		stop_words_.insert(begin(sv), end(sv));
+	}
+
+	template<typename T>
+	explicit SearchServer(T container)
+	{
+		for(const auto& w : container)
+		{
+			if(!w.empty())
+			{
+				stop_words_.insert(w);
+			}
+		}
+	}
+
 	void SetStopWords(const string& text)
 	{
 		for (const string& word : SplitIntoWords(text))
@@ -251,26 +272,14 @@ private:
 	map<string, map<int, double>> word_to_document_freqs_;
 	map<int, DocumentData> documents_;
 
-	static vector<string> SplitIntoWords(const string& text)
+	vector<string> SplitIntoWords(const string& text) const
 	{
+		istringstream ss(text);
 		vector<string> words;
+
 		string word;
-		for (const char c : text)
-		{
-			if (c == ' ')
-			{
-				if (!word.empty())
-				{
-					words.push_back(word);
-					word.clear();
-				}
-			}
-			else
-			{
-				word += c;
-			}
-		}
-		if (!word.empty())
+
+		while (ss >> word)
 		{
 			words.push_back(word);
 		}
