@@ -540,17 +540,47 @@ void TestRelevance()
 void TestRating()
 {
 	int doc_id = 42;
-	string content = "Reading practice to help you understand texts with everyday"s;
+	string content = "Reading practice Reading to help you Reading understand texts with everyday"s;
 	vector<int> ratings = {1, 2, 3};
+	int doc_id3 = 15;
+	string content3 = "practice to help you understand texts with a wide"s;
+	vector<int> ratings3 = {2, -20, 30};
+	int doc_id4 = 16;
+	string content4 = "As with so many such answers, this one could use an example"s;
+	vector<int> ratings4 = {0, 0, 0};
+	int doc_id5 = 17;
+	string content5 = "expected result. To Reading this struct, apparently the developer must "s;
+	vector<int> ratings5 = {-7, -10, -30};
 
 	SearchServer server;
 	server.SetStopWords("in the"s);
 	server.AddDocument(doc_id, content, DocumentStatus::ACTUAL, ratings);
+	server.AddDocument(doc_id3, content3, DocumentStatus::ACTUAL, ratings3);
+	server.AddDocument(doc_id4, content4, DocumentStatus::ACTUAL, ratings4);
+	server.AddDocument(doc_id5, content5, DocumentStatus::ACTUAL, ratings5);
 
 	{
-		const auto found_docs = server.FindTopDocuments("Reading"s);
+		const auto found_docs = server.FindTopDocuments("everyday"s);
 		ASSERT_EQUAL(found_docs.size(), 1);
 		ASSERT_EQUAL(found_docs[0].rating, 2);
+	}
+
+	{
+		const auto found_docs = server.FindTopDocuments("wide"s);
+		ASSERT_EQUAL(found_docs.size(), 1);
+		ASSERT_EQUAL(found_docs[0].rating, 4);
+	}
+
+	{
+		const auto found_docs = server.FindTopDocuments("example"s);
+		ASSERT_EQUAL(found_docs.size(), 1);
+		ASSERT_EQUAL(found_docs[0].rating, 0);
+	}
+
+	{
+		const auto found_docs = server.FindTopDocuments("must"s);
+		ASSERT_EQUAL(found_docs.size(), 1);
+		ASSERT_EQUAL(found_docs[0].rating, -15);
 	}
 }
 
@@ -583,19 +613,56 @@ void TestPredicate()
 
 void TestStatus()
 {
-	int doc_id5 = 16;
-	string content5 = "opinion. texts include articles, reports, messages, short stories"s;
-	vector<int> ratings5 = {-1, -5, 10};
+	int doc_id = 42;
+	string content = "Reading practice Reading to help you Reading understand texts with everyday"s;
+	vector<int> ratings = {1, 2, 3};
+	int doc_id3 = 15;
+	string content3 = "Reading practice to help you understand texts with a wide"s;
+	vector<int> ratings3 = {2, -20, 30};
+	int doc_id4 = 16;
+	string content4 = "Reading As with so many such answers, this one could use an example"s;
+	vector<int> ratings4 = {0, 0, 0};
+	int doc_id5 = 17;
+	string content5 = "Reading expected result. To Reading this struct, apparently the developer must "s;
+	vector<int> ratings5 = {-7, -10, -30};
 
 	SearchServer server;
+	server.SetStopWords("in the"s);
+	server.AddDocument(doc_id, content, DocumentStatus::ACTUAL, ratings);
+	server.AddDocument(doc_id3, content3, DocumentStatus::BANNED, ratings3);
+	server.AddDocument(doc_id4, content4, DocumentStatus::IRRELEVANT, ratings4);
 	server.AddDocument(doc_id5, content5, DocumentStatus::REMOVED, ratings5);
 
-	DocumentStatus doc_status = DocumentStatus::REMOVED;
+	DocumentStatus doc_status = DocumentStatus::ACTUAL;
 
 	{
-		const auto found_docs = server.FindTopDocuments("texts"s, doc_status);
+		const auto found_docs = server.FindTopDocuments("Reading"s, doc_status);
+		ASSERT_EQUAL(found_docs.size(), 1);
+		ASSERT_EQUAL(found_docs[0].id, 42);
+	}
+
+	doc_status = DocumentStatus::BANNED;
+
+	{
+		const auto found_docs = server.FindTopDocuments("Reading"s, doc_status);
+		ASSERT_EQUAL(found_docs.size(), 1);
+		ASSERT_EQUAL(found_docs[0].id, 15);
+	}
+
+	doc_status = DocumentStatus::IRRELEVANT;
+
+	{
+		const auto found_docs = server.FindTopDocuments("Reading"s, doc_status);
 		ASSERT_EQUAL(found_docs.size(), 1);
 		ASSERT_EQUAL(found_docs[0].id, 16);
+	}
+
+	doc_status = DocumentStatus::REMOVED;
+
+	{
+		const auto found_docs = server.FindTopDocuments("Reading"s, doc_status);
+		ASSERT_EQUAL(found_docs.size(), 1);
+		ASSERT_EQUAL(found_docs[0].id, 17);
 	}
 
 }
@@ -605,19 +672,45 @@ void TestRelevanceCorrect()
 	int doc_id = 42;
 	string content = "Reading practice Reading to help you Reading understand texts with everyday"s;
 	vector<int> ratings = {1, 2, 3};
-
+	int doc_id3 = 15;
+	string content3 = "Reading practice to help you understand texts with a wide"s;
+	vector<int> ratings3 = {2, -20, 30};
 	int doc_id4 = 16;
-	string content4 = "As with so many such answers, this one could use an example"s;
-	vector<int> ratings4 = {2, 10, 30};
+	string content4 = "Reading As with so many such answers, this one could use an example"s;
+	vector<int> ratings4 = {0, 0, 0};
+	int doc_id5 = 17;
+	string content5 = "Reading expected result. To Reading this struct, apparently the developer must apparently"s;
+	vector<int> ratings5 = {-7, -10, -30};
 
 	SearchServer server;
+	server.SetStopWords("in the"s);
 	server.AddDocument(doc_id, content, DocumentStatus::ACTUAL, ratings);
+	server.AddDocument(doc_id3, content3, DocumentStatus::ACTUAL, ratings3);
 	server.AddDocument(doc_id4, content4, DocumentStatus::ACTUAL, ratings4);
+	server.AddDocument(doc_id5, content5, DocumentStatus::ACTUAL, ratings5);
 
 	{
-		const auto found_docs = server.FindTopDocuments("practice"s);
+		const auto found_docs = server.FindTopDocuments("everyday"s);
 		ASSERT_EQUAL(found_docs.size(), 1);
-		ASSERT(abs(found_docs[0].relevance - 0.06301338005090412) < EPSILON);
+		ASSERT(abs(found_docs[0].relevance - 0.12602676010180824) < EPSILON);
+	}
+
+	{
+		const auto found_docs = server.FindTopDocuments("wide"s);
+		ASSERT_EQUAL(found_docs.size(), 1);
+		ASSERT(abs(found_docs[0].relevance - 0.13862943611198905) < EPSILON);
+	}
+
+	{
+		const auto found_docs = server.FindTopDocuments("example"s);
+		ASSERT_EQUAL(found_docs.size(), 1);
+		ASSERT(abs(found_docs[0].relevance - 0.10663802777845313) < EPSILON);
+	}
+
+	{
+		const auto found_docs = server.FindTopDocuments("apparently"s);
+		ASSERT_EQUAL(found_docs.size(), 1);
+		ASSERT(abs(found_docs[0].relevance - 0.2520535202036165) < EPSILON);
 	}
 }
 
