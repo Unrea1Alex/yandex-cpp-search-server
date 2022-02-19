@@ -137,6 +137,14 @@ struct Document
 	int id;
 	double relevance;
 	int rating;
+
+	Document()
+		:id(0), relevance(0), rating(0)
+	{}
+
+	Document(int id_, double relevance_, int rating)
+		: id(id_), relevance(relevance_), rating(rating)
+	{}
 };
 
 enum class DocumentStatus
@@ -150,6 +158,8 @@ enum class DocumentStatus
 class SearchServer
 {
 public:
+	inline static constexpr int INVALID_DOCUMENT_ID = -1;
+
 
 	SearchServer(){};
 
@@ -164,6 +174,11 @@ public:
 	{
 		for(const auto& w : container)
 		{
+			if(!IsValidWord(w))
+			{
+				throw invalid_argument("word {" + w + "} contains illegal characters");
+			}
+
 			if(!w.empty())
 			{
 				stop_words_.insert(w);
@@ -181,13 +196,23 @@ public:
 
 	void AddDocument(int document_id, const string& document, DocumentStatus status, const vector<int>& ratings)
 	{
+		if(!IsValidDocument(document_id))
+		{
+			return;
+		}
+
 		const vector<string> words = SplitIntoWordsNoStop(document);
+
 		const double inv_word_count = 1.0 / words.size();
+
 		for (const string& word : words)
 		{
 			word_to_document_freqs_[word][document_id] += inv_word_count;
 		}
+
 		documents_.emplace(document_id, DocumentData{ ComputeAverageRating(ratings), status });
+
+		document_ids_.push_back(document_id);
 	}
 
 	template<typename predicate>
@@ -217,6 +242,19 @@ public:
 	{
 		return documents_.size();
 	}
+
+	int GetDocumentId(int index) const
+	{
+		if (index >= 0 && index < GetDocumentCount())
+		{
+			return document_ids_[index];
+		}
+
+		throw out_of_range("index out of range"s);
+
+		return INVALID_DOCUMENT_ID;
+	}
+
 
 	tuple<vector<string>, DocumentStatus> MatchDocument(const string& raw_query, int document_id) const
 	{
@@ -271,6 +309,7 @@ private:
 	set<string> stop_words_;
 	map<string, map<int, double>> word_to_document_freqs_;
 	map<int, DocumentData> documents_;
+	vector<int> document_ids_;
 
 	vector<string> SplitIntoWords(const string& text) const
 	{
@@ -281,6 +320,11 @@ private:
 
 		while (ss >> word)
 		{
+			if(!IsValidWord(word))
+			{
+				throw invalid_argument("word {" + word + "} contains illegal characters");
+			}
+
 			words.push_back(word);
 		}
 
@@ -318,6 +362,11 @@ private:
 
 	QueryWord ParseQueryWord(string text) const
 	{
+		if(!IsValidWord(text))
+		{
+			throw invalid_argument("word {" + text + "} contains illegal characters");
+		}
+
 		bool is_minus = false;
 
 		if (text[0] == '-')
@@ -347,6 +396,35 @@ private:
 			}
 		}
 		return query;
+	}
+
+	static bool IsValidWord(const string& word)
+	{
+		bool is_valid_char = none_of(word.begin(), word.end(), [](char c)
+		{
+			return c >= '\0' && c < ' ';
+		});
+
+		bool is_not_single_minus = word.size() == 1 && word[0] == '-' ? false : true;
+
+		bool id_no_double_minus = word.find("--") != std::string::npos ? false : true;
+
+		return is_valid_char && is_not_single_minus && id_no_double_minus;
+	}
+
+	bool IsValidDocument(int document_id) const
+	{
+		if(document_id < 0)
+		{
+			throw invalid_argument("document id is less than zero");
+		}
+
+		if(documents_.count(document_id))
+		{
+			throw invalid_argument("duplicate document id { id = " + to_string(document_id) + " }");
+		}
+
+		return document_id >= 0 && !documents_.count(document_id);
 	}
 
 	double ComputeWordInverseDocumentFreq(const string& word) const
@@ -735,7 +813,85 @@ void TestSearchServer() {
 	RUN_TEST(TestRelevanceCorrect);
 }
 
-int main() {
-	TestSearchServer();
-	cout << "Search server testing finished"s << endl;
+void PrintDocument(const Document& document) {
+	cout << "{ "s
+		 << "document_id = "s << document.id << ", "s
+		 << "relevance = "s << document.relevance << ", "s
+		 << "rating = "s << document.rating << " }"s << endl;
 }
+
+void PrintMatchDocumentResult(int document_id, const vector<string>& words, DocumentStatus status) {
+	cout << "{ "s
+		 << "document_id = "s << document_id << ", "s
+		 << "status = "s << static_cast<int>(status) << ", "s
+		 << "words ="s;
+	for (const string& word : words) {
+		cout << ' ' << word;
+	}
+	cout << "}"s << endl;
+}
+
+void AddDocument(SearchServer& search_server, int document_id, const string& document, DocumentStatus status,
+				 const vector<int>& ratings)
+{
+	try
+	{
+		search_server.AddDocument(document_id, document, status, ratings);
+	}
+	catch (const exception& e)
+	{
+		cout << "Ошибка добавления документа "s << document_id << ": "s << e.what() << endl;
+	}
+}
+
+void FindTopDocuments(const SearchServer& search_server, const string& raw_query) {
+	cout << "Результаты поиска по запросу: "s << raw_query << endl;
+	try {
+		for (const Document& document : search_server.FindTopDocuments(raw_query)) {
+			PrintDocument(document);
+		}
+	} catch (const exception& e) {
+		cout << "Ошибка поиска: "s << e.what() << endl;
+	}
+}
+
+void MatchDocuments(const SearchServer& search_server, const string& query)
+{
+	try
+	{
+		cout << "Матчинг документов по запросу: "s << query << endl;
+		const int document_count = search_server.GetDocumentCount();
+		for (int index = 0; index < document_count; ++index)
+		{
+			const int document_id = search_server.GetDocumentId(index);
+			const auto [words, status] = search_server.MatchDocument(query, document_id);
+					PrintMatchDocumentResult(document_id, words, status);
+		}
+		}
+					catch (const exception& e)
+			{
+				cout << "Ошибка матчинга документов на запрос "s << query << ": "s << e.what() << endl;
+			}
+		}
+
+		int main() {
+			TestSearchServer();
+			cout << "Search server testing finished"s << endl;
+
+			SearchServer search_server("и в на"s);
+
+			AddDocument(search_server, 1, "пушистый кот пушистый хвост"s, DocumentStatus::ACTUAL, {7, 2, 7});
+			AddDocument(search_server, 1, "пушистый пёс и модный ошейник"s, DocumentStatus::ACTUAL, {1, 2});
+			AddDocument(search_server, -1, "пушистый пёс и модный ошейник"s, DocumentStatus::ACTUAL, {1, 2});
+			AddDocument(search_server, 3, "большой пёс скво\x12рец евгений"s, DocumentStatus::ACTUAL, {1, 3, 2});
+			AddDocument(search_server, 4, "большой пёс скворец евгений"s, DocumentStatus::ACTUAL, {1, 1, 1});
+
+			FindTopDocuments(search_server, "пушистый -пёс"s);
+			FindTopDocuments(search_server, "пушистый --кот"s);
+			FindTopDocuments(search_server, "пушистый -"s);
+
+			MatchDocuments(search_server, "пушистый пёс"s);
+			MatchDocuments(search_server, "модный -кот"s);
+			MatchDocuments(search_server, "модный --пёс"s);
+			MatchDocuments(search_server, "пушистый - хвост"s);
+		}
