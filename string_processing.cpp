@@ -1,16 +1,17 @@
 #include "string_processing.h"
+#include <sstream>
 
-std::ostream& operator<<(std::ostream& stream, const Document& document)
+std::vector<std::string> SplitIntoWords(const std::string& text)
 {
-	stream << "{ ";
-	stream << "document_id = ";
-	stream << std::to_string(document.id);
-	stream << ", ";
-	stream << "relevance = ";
-	stream << std::to_string(document.relevance);
-	stream << ", ";
-	stream << "rating = ";
-	stream << std::to_string(document.rating);
-	stream << " }";
-	return stream;
+    std::istringstream ss(text);
+    std::vector<std::string> words;
+
+    std::string word;
+
+    while (ss >> word)
+    {
+        words.push_back(word);
+    }
+
+    return words;
 }

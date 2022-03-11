@@ -16,6 +16,7 @@
 #include "paginator.h"
 #include "string_processing.h"
 #include "read_input_functions.h"
+#include "test_framework.h"
 
 
 using namespace std;
@@ -25,54 +26,6 @@ auto Paginate(const Container& c, size_t page_size)
 {
 	return Paginator(c.begin(), c.end(), page_size);
 }
-
-template <typename T, typename U>
-void AssertEqualImpl(const T& t, const U& u, const string& t_str, const string& u_str, const string& file,
-					 const string& func, unsigned line, const string& hint)
-{
-	if (t != u) {
-		cout << boolalpha;
-		cout << file << "("s << line << "): "s << func << ": "s;
-		cout << "ASSERT_EQUAL("s << t_str << ", "s << u_str << ") failed: "s;
-		cout << t << " != "s << u << "."s;
-		if (!hint.empty()) {
-			cout << " Hint: "s << hint;
-		}
-		cout << endl;
-		abort();
-	}
-}
-
-#define ASSERT_EQUAL(a, b) AssertEqualImpl((a), (b), #a, #b, __FILE__, __FUNCTION__, __LINE__, ""s)
-
-#define ASSERT_EQUAL_HINT(a, b, hint) AssertEqualImpl((a), (b), #a, #b, __FILE__, __FUNCTION__, __LINE__, (hint))
-
-void AssertImpl(bool value, const string& expr_str, const string& file, const string& func, unsigned line,
-				const string& hint)
-{
-	if (!value) {
-		cout << file << "("s << line << "): "s << func << ": "s;
-		cout << "ASSERT("s << expr_str << ") failed."s;
-		if (!hint.empty()) {
-			cout << " Hint: "s << hint;
-		}
-		cout << endl;
-		abort();
-	}
-}
-
-#define ASSERT(expr) AssertImpl(!!(expr), #expr, __FILE__, __FUNCTION__, __LINE__, ""s)
-
-#define ASSERT_HINT(expr, hint) AssertImpl(!!(expr), #expr, __FILE__, __FUNCTION__, __LINE__, (hint))
-
-template <typename T, typename F>
-void RunTestImpl(T funcname, F func)
-{
-	func();
-	cerr << funcname << " OK" << endl;
-}
-
-#define RUN_TEST(func) RunTestImpl(#func, func)  // напишите недостающий код
 
 void TestFindDocument()
 {
@@ -394,7 +347,8 @@ void TestSearchServer()
 	RUN_TEST(TestRelevanceCorrect);
 }
 
-void PrintDocument(const Document& document) {
+void PrintDocument(const Document& document)
+{
 	std::cout << "{ "s
 		 << "document_id = "s << document.id << ", "s
 		 << "relevance = "s << document.relevance << ", "s
@@ -413,40 +367,57 @@ void PrintMatchDocumentResult(int document_id, const std::vector<std::string>& w
 }
 
 void AddDocument(SearchServer& search_server, int document_id, const std::string& document, DocumentStatus status,
-				 const std::vector<int>& ratings) {
-	try {
+                 const std::vector<int>& ratings)
+{
+    try
+    {
 		search_server.AddDocument(document_id, document, status, ratings);
-	} catch (const std::invalid_argument& e) {
+    }
+    catch (const std::invalid_argument& e)
+    {
 		std::cout << "Ошибка добавления документа "s << document_id << ": "s << e.what() << std::endl;
 	}
 }
 
-void FindTopDocuments(const SearchServer& search_server, const std::string& raw_query) {
+void FindTopDocuments(const SearchServer& search_server, const std::string& raw_query)
+{
 	std::cout << "Результаты поиска по запросу: "s << raw_query << std::endl;
-	try {
-		for (const Document& document : search_server.FindTopDocuments(raw_query)) {
+    try
+    {
+        for (const Document& document : search_server.FindTopDocuments(raw_query))
+        {
 			PrintDocument(document);
 		}
-	} catch (const std::invalid_argument& e) {
+    }
+    catch (const std::invalid_argument& e)
+    {
 		std::cout << "Ошибка поиска: "s << e.what() << std::endl;
 	}
 }
 
-void MatchDocuments(const SearchServer& search_server, const std::string& query) {
-	try {
+void MatchDocuments(const SearchServer& search_server, const std::string& query)
+{
+    try
+    {
 		std::cout << "Матчинг документов по запросу: "s << query << std::endl;
 		const int document_count = search_server.GetDocumentCount();
-		for (int index = 0; index < document_count; ++index) {
+        for (int index = 0; index < document_count; ++index)
+        {
 			const int document_id = search_server.GetDocumentId(index);
 			const auto [words, status] = search_server.MatchDocument(query, document_id);
 			PrintMatchDocumentResult(document_id, words, status);
 		}
-	} catch (const std::invalid_argument& e) {
+    }
+    catch (const std::invalid_argument& e)
+    {
 		std::cout << "Ошибка матчинга документов на запрос "s << query << ": "s << e.what() << std::endl;
 	}
 }
 
-int main() {
+int main()
+{
+    TestSearchServer();
+
 	SearchServer search_server("и в на"s);
 
 	search_server.AddDocument(1, "пушистый кот пушистый хвост"s, DocumentStatus::ACTUAL, {7, 2, 7});
@@ -459,8 +430,8 @@ int main() {
 	int page_size = 2;
 	const auto pages = Paginate(search_results, page_size);
 
-	// Выводим найденные документы по страницам
-	for (auto page = pages.begin(); page != pages.end(); ++page) {
+    for (auto page = pages.begin(); page != pages.end(); ++page)
+    {
 		std::cout << *page << std::endl;
 		std::cout << "Разрыв страницы"s << std::endl;
 	}

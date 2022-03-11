@@ -7,5 +7,5 @@ std::vector<Document> RequestQueue::AddFindRequest(const std::string& raw_query,
 
 std::vector<Document> RequestQueue::AddFindRequest(const std::string& raw_query)
 {
-	return AddFindRequest(raw_query, [](int, DocumentStatus status, int) { return status == DocumentStatus::ACTUAL; });
+    return AddFindRequest(raw_query, DocumentStatus::ACTUAL);
 }

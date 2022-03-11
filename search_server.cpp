@@ -1,25 +1,20 @@
 #include "search_server.h"
+#include "string_processing.h"
 
 SearchServer::SearchServer(const std::string& words)
 {
-	std::vector<std::string> sv = SplitIntoWords(words);
-	stop_words_.insert(begin(sv), end(sv));
+    SetStopWords(words);
 }
 
-void SearchServer::SetStopWords(const std::string& text)
+void SearchServer::SetStopWords(const std::string& words)
 {
-	for (const std::string& word : SplitIntoWords(text))
-	{
-		stop_words_.insert(word);
-	}
+    std::vector<std::string> sv = SplitIntoWords(words);
+    stop_words_.insert(begin(sv), end(sv));
 }
 
 void SearchServer::AddDocument(int document_id, const std::string& document, DocumentStatus status, const std::vector<int>& ratings)
 {
-	if(!IsValidDocument(document_id))
-	{
-		return;
-	}
+    CheckIsValidDocument(document_id);
 
 	const std::vector<std::string> words = SplitIntoWordsNoStop(document);
 
@@ -52,14 +47,14 @@ int SearchServer::GetDocumentCount() const
 
 int SearchServer::GetDocumentId(int index) const
 {
+    using namespace std::string_literals;
+
 	if (index >= 0 && index < GetDocumentCount())
 	{
 		return document_ids_[index];
 	}
 
 	throw std::out_of_range("index out of range"s);
-
-	return INVALID_DOCUMENT_ID;
 }
 
 std::tuple<std::vector<std::string>, DocumentStatus> SearchServer::MatchDocument(const std::string& raw_query, int document_id) const
@@ -92,25 +87,7 @@ std::tuple<std::vector<std::string>, DocumentStatus> SearchServer::MatchDocument
 	return {matched_words, documents_.at(document_id).status};
 }
 
-std::vector<std::string> SearchServer::SplitIntoWords(const std::string& text) const
-{
-	std::istringstream ss(text);
-	std::vector<std::string> words;
 
-	std::string word;
-
-	while (ss >> word)
-	{
-		if(!IsValidWord(word))
-		{
-			throw std::invalid_argument("word {" + word + "} contains illegal characters");
-		}
-
-		words.push_back(word);
-	}
-
-	return words;
-}
 
 bool SearchServer::IsStopWord(const std::string& word) const
 {
@@ -124,6 +101,11 @@ std::vector<std::string> SearchServer::SplitIntoWordsNoStop(const std::string& t
 	{
 		if (!IsStopWord(word))
 		{
+            if(!IsValidWord(word))
+            {
+                throw std::invalid_argument("word {" + word + "} contains illegal characters");
+            }
+
 			words.push_back(word);
 		}
 	}
@@ -186,14 +168,14 @@ bool SearchServer::IsValidWord(const std::string& word)
 		return c >= '\0' && c < ' ';
 	});
 
-	bool is_not_single_minus = word.size() == 1 && word[0] == '-' ? false : true;
+    bool is_not_single_minus = !(word.size() == 1 && word[0] == '-');
 
-	bool id_no_double_minus = word.find("--") != std::string::npos ? false : true;
+    bool id_no_double_minus = !(word.size() >= 2 && word.substr(0, 2) == "--");
 
 	return is_valid_char && is_not_single_minus && id_no_double_minus;
 }
 
-bool SearchServer::IsValidDocument(int document_id) const
+void SearchServer::CheckIsValidDocument(int document_id) const
 {
 	if(document_id < 0)
 	{
@@ -204,8 +186,6 @@ bool SearchServer::IsValidDocument(int document_id) const
 	{
 		throw std::invalid_argument("duplicate document id { id = " + std::to_string(document_id) + " }");
 	}
-
-	return document_id >= 0 && !documents_.count(document_id);
 }
 
 double SearchServer::ComputeWordInverseDocumentFreq(const std::string& word) const

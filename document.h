@@ -1,5 +1,7 @@
 #pragma once
 
+#include <sstream>
+
 enum class DocumentStatus
 {
 	ACTUAL,
@@ -28,3 +30,6 @@ struct DocumentData
 	int rating;
 	DocumentStatus status;
 };
+
+std::ostream& operator<<(std::ostream& stream, const Document& document);
+

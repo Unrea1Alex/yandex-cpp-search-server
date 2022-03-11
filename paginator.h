@@ -1,4 +1,5 @@
 #pragma once
+
 #include <iostream>
 #include <vector>
 #include <algorithm>
@@ -61,3 +62,15 @@ private:
 
 	std::vector<PaginatorRange<It>> pages;
 };
+
+template<typename T>
+std::ostream& operator<<(std::ostream& stream, const PaginatorRange<T>& pagination)
+{
+
+    for(auto it = pagination.begin(); it != pagination.end(); ++it)
+    {
+        stream << *it;
+    }
+
+    return stream;
+}
