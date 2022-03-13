@@ -9,7 +9,7 @@ SearchServer::SearchServer(const std::string& words)
 void SearchServer::SetStopWords(const std::string& words)
 {
     std::vector<std::string> sv = SplitIntoWords(words);
-    stop_words_.insert(begin(sv), end(sv));
+	stop_words_.insert(std::begin(sv), std::end(sv));
 }
 
 void SearchServer::AddDocument(int document_id, const std::string& document, DocumentStatus status, const std::vector<int>& ratings)
@@ -87,7 +87,44 @@ std::tuple<std::vector<std::string>, DocumentStatus> SearchServer::MatchDocument
 	return {matched_words, documents_.at(document_id).status};
 }
 
+std::vector<int>::iterator SearchServer::begin()
+{
+	return document_ids_.begin();
+}
 
+std::vector<int>::iterator SearchServer::end()
+{
+	return document_ids_.end();
+}
+
+const std::map<std::string, double>& SearchServer::GetWordFrequencies(int document_id) const
+{
+	std::map<std::string, double>* result = new std::map<std::string, double>();
+
+	for(auto& [str, freq_map] : word_to_document_freqs_)
+	{
+		auto it = freq_map.find(document_id);
+
+		if(it != freq_map.end())
+		{
+			result->at(str) = it->second;
+		}
+	}
+
+	return *result;
+}
+
+void SearchServer::RemoveDocument(int document_id)
+{
+	document_ids_.erase(find(begin(), end(), document_id));
+
+	documents_.erase(documents_.find(document_id));
+
+	for(auto& [str, fr] : word_to_document_freqs_)
+	{
+		fr.erase(fr.find(document_id));
+	}
+}
 
 bool SearchServer::IsStopWord(const std::string& word) const
 {

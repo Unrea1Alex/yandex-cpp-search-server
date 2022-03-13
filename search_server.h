@@ -39,6 +39,13 @@ public:
 
 	std::tuple<std::vector<std::string>, DocumentStatus> MatchDocument(const std::string& raw_query, int document_id) const;
 
+	std::vector<int>::iterator begin();
+	std::vector<int>::iterator end();
+
+	const std::map<std::string, double>& GetWordFrequencies(int document_id) const;
+
+	void RemoveDocument(int document_id);
+
 private:
 
 	struct QueryWord
