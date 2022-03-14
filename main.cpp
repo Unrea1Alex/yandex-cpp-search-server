@@ -403,9 +403,9 @@ void MatchDocuments(const SearchServer& search_server, const std::string& query)
 		const int document_count = search_server.GetDocumentCount();
         for (int index = 0; index < document_count; ++index)
         {
-			const int document_id = search_server.GetDocumentId(index);
-			const auto [words, status] = search_server.MatchDocument(query, document_id);
-			PrintMatchDocumentResult(document_id, words, status);
+			//const int document_id = search_server.GetDocumentId(index);
+			//const auto [words, status] = search_server.MatchDocument(query, document_id);
+			//PrintMatchDocumentResult(document_id, words, status);
 		}
     }
     catch (const std::invalid_argument& e)
@@ -416,7 +416,7 @@ void MatchDocuments(const SearchServer& search_server, const std::string& query)
 
 int main()
 {
-    TestSearchServer();
+	//TestSearchServer();
 
 	SearchServer search_server("и в на"s);
 
