@@ -36,12 +36,11 @@ public:
 	std::vector<Document> FindTopDocuments(const std::string& raw_query) const;
 
 	int GetDocumentCount() const;
-	//int GetDocumentId(int index) const;
 
 	std::tuple<std::vector<std::string>, DocumentStatus> MatchDocument(const std::string& raw_query, int document_id) const;
 
-    std::set<int>::iterator begin();
-    std::set<int>::iterator end();
+	std::set<int>::iterator begin() const;
+	std::set<int>::iterator end() const;
 
 	const std::map<std::string, double>& GetWordFrequencies(int document_id) const;
 
@@ -103,7 +102,7 @@ SearchServer::SearchServer(T container)
     {
         if(!IsValidWord(w))
         {
-            throw invalid_argument("word {"s + w + "} contains illegal characters"s);
+			throw std::invalid_argument("word {"s + w + "} contains illegal characters"s);
         }
 
         if(!w.empty())
@@ -168,7 +167,7 @@ std::vector<Document> SearchServer::FindAllDocuments(const Query& query, T predi
 
     sort(matched_documents.begin(), matched_documents.end(), [this, predicate](const Document& lhs, const Document& rhs)
     {
-        if (abs(lhs.relevance - rhs.relevance) < EPSILON)
+		if (std::abs(lhs.relevance - rhs.relevance) < EPSILON)
         {
             return lhs.rating > rhs.rating;
         }

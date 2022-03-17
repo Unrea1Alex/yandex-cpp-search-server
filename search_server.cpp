@@ -1,54 +1,62 @@
+#include <cmath>
 #include "search_server.h"
 #include "string_processing.h"
 
 SearchServer::SearchServer(const std::string& words)
 {
-    SetStopWords(words);
+	SetStopWords(words);
 }
 
 void SearchServer::SetStopWords(const std::string& words)
 {
-    std::vector<std::string> sv = SplitIntoWords(words);
-	stop_words_.insert(std::begin(sv), std::end(sv));
+	std::vector<std::string> str_vector = SplitIntoWords(words);
+
+	for(const auto& word : str_vector)
+	{
+		if(!IsValidWord(word))
+		{
+			throw std::invalid_argument("word {" + word + "} contains illegal characters");
+		}
+	}
+
+	stop_words_.insert(std::begin(str_vector), std::end(str_vector));
 }
 
 int SearchServer::AddWord(std::string word)
 {
-    auto it = std::find(word_ids_.begin(), word_ids_.end(), word);
+	auto it = std::find(word_ids_.begin(), word_ids_.end(), word);
 
 	if(it == word_ids_.end())
 	{
-        word_ids_.push_back(word);
+		word_ids_.push_back(word);
 
 		return word_ids_.size() - 1;
 	}
 
-    int result = std::distance(word_ids_.begin(), it);
-
-    return result;
-            //static_cast<int>(std::distance(word_ids_.begin(), it));
+	return std::distance(word_ids_.begin(), it);
 }
 
 void SearchServer::AddDocument(int document_id, const std::string& document, DocumentStatus status, const std::vector<int>& ratings)
 {
-    CheckIsValidDocument(document_id);
+	CheckIsValidDocument(document_id);
 
 	const std::vector<std::string> words = SplitIntoWordsNoStop(document);
 
 	const double inv_word_count = 1.0 / words.size();
 
-    std::set<int> document_words_ids;
+	std::set<int> document_words_ids;
 
 	for (const std::string& word : words)
 	{
 		word_to_document_freqs_[word][document_id] += inv_word_count;
 
-        document_words_ids.emplace(AddWord(word));
+		document_words_ids.emplace(AddWord(word));
 	}
 
-    documents_.emplace(document_id, DocumentData{ ComputeAverageRating(ratings), status, document_words_ids });
+	documents_.emplace(document_id, DocumentData{ ComputeAverageRating(ratings), status, document_words_ids });
 
-    //document_ids_[document_id].insert(document_words_ids.begin(), document_words_ids.end());
+	document_ids_.emplace(document_id);
+
 }
 
 std::vector<Document> SearchServer::FindTopDocuments(const std::string& raw_query, DocumentStatus doc_status) const
@@ -65,18 +73,6 @@ int SearchServer::GetDocumentCount() const
 {
 	return documents_.size();
 }
-
-//int SearchServer::GetDocumentId(int index) const
-//{
-	//using namespace std::string_literals;
-
-	//if (index >= 0 && index < GetDocumentCount())
-	//{
-		//return document_ids_[index];
-	//}
-
-	//throw std::out_of_range("index out of range"s);
-//}
 
 std::tuple<std::vector<std::string>, DocumentStatus> SearchServer::MatchDocument(const std::string& raw_query, int document_id) const
 {
@@ -108,12 +104,12 @@ std::tuple<std::vector<std::string>, DocumentStatus> SearchServer::MatchDocument
 	return {matched_words, documents_.at(document_id).status};
 }
 
-std::set<int>::iterator SearchServer::begin()
+std::set<int>::iterator SearchServer::begin() const
 {
 	return document_ids_.begin();
 }
 
-std::set<int>::iterator SearchServer::end()
+std::set<int>::iterator SearchServer::end() const
 {
 	return document_ids_.end();
 }
@@ -137,43 +133,43 @@ const std::map<std::string, double>& SearchServer::GetWordFrequencies(int docume
 
 void SearchServer::RemoveDocument(int document_id)
 {
-    document_ids_.erase(document_id);
+	document_ids_.erase(document_id);
 
 	documents_.erase(documents_.find(document_id));
 
 	for(auto& [str, fr] : word_to_document_freqs_)
 	{
-        fr.erase(document_id);
+		fr.erase(document_id);
 	}
 }
 
 std::set<int> SearchServer::GetDuplicatedIds() const
 {
-    std::set<int> result;
+	std::set<int> result;
 
-    std::set<std::set<int>> unique_ids;
+	std::set<std::set<int>> unique_ids;
 
-    auto current = std::begin(documents_);
-    const auto last = std::end(documents_);
+	auto current = std::begin(documents_);
+	const auto last = std::end(documents_);
 
 
-    while(current != last)
-    {
-        auto&& [key, value] = *current;
+	while(current != last)
+	{
+		auto&& [key, value] = *current;
 
-        if(unique_ids.count(value.word_ids) == 0)
-        {
-            unique_ids.emplace(value.word_ids);
-        }
-        else
-        {
-            result.emplace(key);
-        }
+		if(unique_ids.count(value.word_ids) == 0)
+		{
+			unique_ids.emplace(value.word_ids);
+		}
+		else
+		{
+			result.emplace(key);
+		}
 
-        current++;
-    }
+		current++;
+	}
 
-    return result;
+	return result;
 }
 
 bool SearchServer::IsStopWord(const std::string& word) const
@@ -188,10 +184,10 @@ std::vector<std::string> SearchServer::SplitIntoWordsNoStop(const std::string& t
 	{
 		if (!IsStopWord(word))
 		{
-            if(!IsValidWord(word))
-            {
-                throw std::invalid_argument("word {" + word + "} contains illegal characters");
-            }
+			if(!IsValidWord(word))
+			{
+				throw std::invalid_argument("word {" + word + "} contains illegal characters");
+			}
 
 			words.push_back(word);
 		}
@@ -255,9 +251,9 @@ bool SearchServer::IsValidWord(const std::string& word)
 		return c >= '\0' && c < ' ';
 	});
 
-    bool is_not_single_minus = !(word.size() == 1 && word[0] == '-');
+	bool is_not_single_minus = !(word.size() == 1 && word[0] == '-');
 
-    bool id_no_double_minus = !(word.size() >= 2 && word.substr(0, 2) == "--");
+	bool id_no_double_minus = !(word.size() >= 2 && word.substr(0, 2) == "--");
 
 	return is_valid_char && is_not_single_minus && id_no_double_minus;
 }
@@ -277,7 +273,7 @@ void SearchServer::CheckIsValidDocument(int document_id) const
 
 double SearchServer::ComputeWordInverseDocumentFreq(const std::string& word) const
 {
-	return log(GetDocumentCount() * 1.0 / word_to_document_freqs_.at(word).size());
+	return std::log(GetDocumentCount() * 1.0 / word_to_document_freqs_.at(word).size());
 }
 
 std::vector<Document> SearchServer::FindAllDocuments(const Query& query, DocumentStatus document_status) const

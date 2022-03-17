@@ -18,6 +18,7 @@
 #include "read_input_functions.h"
 #include "test_framework.h"
 #include "remove_duplicates.h"
+#include "request_queue.h"
 
 
 using namespace std;
@@ -368,14 +369,14 @@ void PrintMatchDocumentResult(int document_id, const std::vector<std::string>& w
 }
 
 void AddDocument(SearchServer& search_server, int document_id, const std::string& document, DocumentStatus status,
-                 const std::vector<int>& ratings)
+				 const std::vector<int>& ratings)
 {
-    try
-    {
+	try
+	{
 		search_server.AddDocument(document_id, document, status, ratings);
-    }
-    catch (const std::invalid_argument& e)
-    {
+	}
+	catch (const std::invalid_argument& e)
+	{
 		std::cout << "Ошибка добавления документа "s << document_id << ": "s << e.what() << std::endl;
 	}
 }
@@ -383,43 +384,95 @@ void AddDocument(SearchServer& search_server, int document_id, const std::string
 void FindTopDocuments(const SearchServer& search_server, const std::string& raw_query)
 {
 	std::cout << "Результаты поиска по запросу: "s << raw_query << std::endl;
-    try
-    {
-        for (const Document& document : search_server.FindTopDocuments(raw_query))
-        {
+	try
+	{
+		for (const Document& document : search_server.FindTopDocuments(raw_query))
+		{
 			PrintDocument(document);
 		}
-    }
-    catch (const std::invalid_argument& e)
-    {
+	}
+	catch (const std::invalid_argument& e)
+	{
 		std::cout << "Ошибка поиска: "s << e.what() << std::endl;
 	}
 }
 
 void MatchDocuments(const SearchServer& search_server, const std::string& query)
 {
-    try
-    {
+	SearchServer server = static_cast<SearchServer>(search_server);
+
+	try
+	{
 		std::cout << "Матчинг документов по запросу: "s << query << std::endl;
-		const int document_count = search_server.GetDocumentCount();
-        for (int index = 0; index < document_count; ++index)
-        {
-			//const int document_id = search_server.GetDocumentId(index);
-			//const auto [words, status] = search_server.MatchDocument(query, document_id);
-			//PrintMatchDocumentResult(document_id, words, status);
+
+		for(const auto document_id : server)
+		{
+			const auto [words, status] = search_server.MatchDocument(query, document_id);
+			PrintMatchDocumentResult(document_id, words, status);
 		}
-    }
-    catch (const std::invalid_argument& e)
-    {
+	}
+	catch (const std::invalid_argument& e)
+	{
 		std::cout << "Ошибка матчинга документов на запрос "s << query << ": "s << e.what() << std::endl;
+	}
+}
+
+void TestLambda()
+{
+	const std::vector<int> ratings1 = {1, 2, 3 , 4 , 5};
+	const std::vector<int> ratings2 = {-1, -2, 30 , -3, 44 , 5};
+	const std::vector<int> ratings3 = {12, -20, 80 , 0, 8, 0, 0, 9, 67};
+	const std::vector<int> ratings4 = {7, 0, 3 , -49 , 5};
+	const std::vector<int> ratings5 = {81, -6, 7 , 94 , -7};
+	const std::vector<int> ratings6 = {41, 8, -7 , 897 , 5};
+	const std::vector<int> ratings7 = {543, 0, 43 , 4 , -5};
+	const std::vector<int> ratings8 = {91, 7, 3 , -88 , 56};
+	const std::vector<int> ratings9 = {0, -87, 93 , 66 , 5};
+	const std::vector<int> ratings10 = {11, 2, -43 , 4 , 895};
+	const int max_ratings_length = 10;
+	const int max_rating_value = 100;
+
+	std::string stop_words = "и в на";
+	SearchServer lambda_search_server(stop_words);
+	lambda_search_server.AddDocument(0, "белый кот и модный ошейник", DocumentStatus::ACTUAL, ratings1);
+	lambda_search_server.AddDocument(1, "пушистый кот пушистый хвост", DocumentStatus::ACTUAL, ratings2);
+	lambda_search_server.AddDocument(2, "ухоженный пёс выразительные глаза", DocumentStatus::ACTUAL, ratings3);
+	lambda_search_server.AddDocument(3, "белый модный кот", DocumentStatus::IRRELEVANT, ratings4);
+	lambda_search_server.AddDocument(4, "пушистый кот пёс", DocumentStatus::IRRELEVANT, ratings5);
+	lambda_search_server.AddDocument(5, "ухоженный ошейник выразительные глаза", DocumentStatus::IRRELEVANT, ratings6);
+	lambda_search_server.AddDocument(6, "кот и ошейник", DocumentStatus::BANNED, ratings7);
+	lambda_search_server.AddDocument(7, "пёс и хвост", DocumentStatus::BANNED, ratings8);
+	lambda_search_server.AddDocument(8, "модный пёс пушистый хвост", DocumentStatus::BANNED, ratings9);
+	lambda_search_server.AddDocument(9, "кот пушистый ошейник", DocumentStatus::REMOVED, ratings10);
+	lambda_search_server.AddDocument(10, "ухоженный кот и пёс", DocumentStatus::REMOVED, ratings2);
+	lambda_search_server.AddDocument(11, "хвост и выразительные глаза", DocumentStatus::REMOVED, ratings3);
+
+	const std::string lambda_query = "пушистый ухоженный кот";
+	cout << "Ratings > 10 and Id < 7:" << endl;
+	const auto documents1 = lambda_search_server.FindTopDocuments(lambda_query,
+		[](int document_id, DocumentStatus status, int rating) {
+			return rating > 10 && document_id < 7;
+		});
+	for (const Document& document : documents1) {
+		PrintDocument(document);
+	}
+	cout << "Even documents and ACTUAL:" << endl;
+	const auto documents2 = lambda_search_server.FindTopDocuments(lambda_query,
+		[](int document_id, DocumentStatus status, int rating) {
+			return document_id % 2 == 0 && status == DocumentStatus::ACTUAL;
+		});
+	for (const Document& document : documents2) {
+		PrintDocument(document);
 	}
 }
 
 int main()
 {
-	TestSearchServer();
+	TestLambda();
 
-    SearchServer search_server("и в на and with"s);
+	/*TestSearchServer();
+
+	SearchServer search_server("и в на and with"s);
 
 	search_server.AddDocument(1, "пушистый кот пушистый хвост"s, DocumentStatus::ACTUAL, {7, 2, 7});
 	search_server.AddDocument(2, "пушистый пёс и модный ошейник"s, DocumentStatus::ACTUAL, {1, 2, 3});
@@ -427,30 +480,30 @@ int main()
 	search_server.AddDocument(4, "большой пёс скворец евгений"s, DocumentStatus::ACTUAL, {1, 3, 2});
 	search_server.AddDocument(5, "большой пёс скворец василий"s, DocumentStatus::ACTUAL, {1, 1, 1});
 
-    AddDocument(search_server, 1, "funny pet and nasty rat"s, DocumentStatus::ACTUAL, {7, 2, 7});
+	AddDocument(search_server, 1, "funny pet and nasty rat"s, DocumentStatus::ACTUAL, {7, 2, 7});
 
-    AddDocument(search_server, 2, "funny pet with curly hair"s, DocumentStatus::ACTUAL, {1, 2});
+	AddDocument(search_server, 2, "funny pet with curly hair"s, DocumentStatus::ACTUAL, {1, 2});
 
-    // дубликат документа 2, будет удалён
-    AddDocument(search_server, 3, "funny pet with curly hair"s, DocumentStatus::ACTUAL, {1, 2});
+	// дубликат документа 2, будет удалён
+	AddDocument(search_server, 3, "funny pet with curly hair"s, DocumentStatus::ACTUAL, {1, 2});
 
-    // отличие только в стоп-словах, считаем дубликатом
-    AddDocument(search_server, 4, "funny pet and curly hair"s, DocumentStatus::ACTUAL, {1, 2});
+	// отличие только в стоп-словах, считаем дубликатом
+	AddDocument(search_server, 4, "funny pet and curly hair"s, DocumentStatus::ACTUAL, {1, 2});
 
-    // множество слов такое же, считаем дубликатом документа 1
-    AddDocument(search_server, 5, "funny funny pet and nasty nasty rat"s, DocumentStatus::ACTUAL, {1, 2});
+	// множество слов такое же, считаем дубликатом документа 1
+	AddDocument(search_server, 5, "funny funny pet and nasty nasty rat"s, DocumentStatus::ACTUAL, {1, 2});
 
-    // добавились новые слова, дубликатом не является
-    AddDocument(search_server, 6, "funny pet and not very nasty rat"s, DocumentStatus::ACTUAL, {1, 2});
+	// добавились новые слова, дубликатом не является
+	AddDocument(search_server, 6, "funny pet and not very nasty rat"s, DocumentStatus::ACTUAL, {1, 2});
 
-    // множество слов такое же, как в id 6, несмотря на другой порядок, считаем дубликатом
-    AddDocument(search_server, 7, "very nasty rat and not very funny pet"s, DocumentStatus::ACTUAL, {1, 2});
+	// множество слов такое же, как в id 6, несмотря на другой порядок, считаем дубликатом
+	AddDocument(search_server, 7, "very nasty rat and not very funny pet"s, DocumentStatus::ACTUAL, {1, 2});
 
-    // есть не все слова, не является дубликатом
-    AddDocument(search_server, 8, "pet with rat and rat and rat"s, DocumentStatus::ACTUAL, {1, 2});
+	// есть не все слова, не является дубликатом
+	AddDocument(search_server, 8, "pet with rat and rat and rat"s, DocumentStatus::ACTUAL, {1, 2});
 
-    // слова из разных документов, не является дубликатом
-    AddDocument(search_server, 9, "nasty rat with curly hair"s, DocumentStatus::ACTUAL, {1, 2});
+	// слова из разных документов, не является дубликатом
+	AddDocument(search_server, 9, "nasty rat with curly hair"s, DocumentStatus::ACTUAL, {1, 2});
 
 
 
@@ -458,13 +511,13 @@ int main()
 	int page_size = 2;
 	const auto pages = Paginate(search_results, page_size);
 
-    for (auto page = pages.begin(); page != pages.end(); ++page)
-    {
+	for (auto page = pages.begin(); page != pages.end(); ++page)
+	{
 		std::cout << *page << std::endl;
 		std::cout << "Разрыв страницы"s << std::endl;
 	}
 
-    cout << "Before duplicates removed: "s << search_server.GetDocumentCount() << endl;
-        RemoveDuplicates(search_server);
-        cout << "After duplicates removed: "s << search_server.GetDocumentCount() << endl;
+	cout << "Before duplicates removed: "s << search_server.GetDocumentCount() << endl;
+		RemoveDuplicates(search_server);
+		cout << "After duplicates removed: "s << search_server.GetDocumentCount() << endl;*/
 }
