@@ -70,7 +70,7 @@ private:
 
     std::vector<std::string> word_ids_;
 
-	int AddWord(std::string word);
+    int AddUniqueWord(std::string word);
 
 	bool IsStopWord(const std::string& word) const;
 

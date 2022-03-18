@@ -22,7 +22,7 @@ void SearchServer::SetStopWords(const std::string& words)
 	stop_words_.insert(std::begin(str_vector), std::end(str_vector));
 }
 
-int SearchServer::AddWord(std::string word)
+int SearchServer::AddUniqueWord(std::string word)
 {
 	auto it = std::find(word_ids_.begin(), word_ids_.end(), word);
 
@@ -50,7 +50,7 @@ void SearchServer::AddDocument(int document_id, const std::string& document, Doc
 	{
 		word_to_document_freqs_[word][document_id] += inv_word_count;
 
-		document_words_ids.emplace(AddWord(word));
+        document_words_ids.emplace(AddUniqueWord(word));
 	}
 
 	documents_.emplace(document_id, DocumentData{ ComputeAverageRating(ratings), status, document_words_ids });
@@ -116,7 +116,7 @@ std::set<int>::iterator SearchServer::end() const
 
 const std::map<std::string, double>& SearchServer::GetWordFrequencies(int document_id) const
 {
-	std::map<std::string, double>* result = new std::map<std::string, double>();
+    static std::map<std::string, double> result;
 
 	for(auto& [str, freq_map] : word_to_document_freqs_)
 	{
@@ -124,18 +124,18 @@ const std::map<std::string, double>& SearchServer::GetWordFrequencies(int docume
 
 		if(it != freq_map.end())
 		{
-			result->at(str) = it->second;
+            result.at(str) = it->second;
 		}
 	}
 
-	return *result;
+    return result;
 }
 
 void SearchServer::RemoveDocument(int document_id)
 {
 	document_ids_.erase(document_id);
 
-	documents_.erase(documents_.find(document_id));
+    documents_.erase(document_id);
 
 	for(auto& [str, fr] : word_to_document_freqs_)
 	{

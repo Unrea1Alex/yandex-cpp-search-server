@@ -314,25 +314,25 @@ void TestRelevanceCorrect()
 	{
 		const auto found_docs = server.FindTopDocuments("everyday"s);
 		ASSERT_EQUAL(found_docs.size(), 1);
-		ASSERT(abs(found_docs[0].relevance - 0.12602676010180824) < SearchServer::EPSILON);
+        ASSERT(std::abs(found_docs[0].relevance - 0.12602676010180824) < SearchServer::EPSILON);
 	}
 
 	{
 		const auto found_docs = server.FindTopDocuments("wide"s);
 		ASSERT_EQUAL(found_docs.size(), 1);
-		ASSERT(abs(found_docs[0].relevance - 0.13862943611198905) < SearchServer::EPSILON);
+        ASSERT(std::abs(found_docs[0].relevance - 0.13862943611198905) < SearchServer::EPSILON);
 	}
 
 	{
 		const auto found_docs = server.FindTopDocuments("example"s);
 		ASSERT_EQUAL(found_docs.size(), 1);
-		ASSERT(abs(found_docs[0].relevance - 0.10663802777845313) < SearchServer::EPSILON);
+        ASSERT(std::abs(found_docs[0].relevance - 0.10663802777845313) < SearchServer::EPSILON);
 	}
 
 	{
 		const auto found_docs = server.FindTopDocuments("apparently"s);
 		ASSERT_EQUAL(found_docs.size(), 1);
-		ASSERT(abs(found_docs[0].relevance - 0.2520535202036165) < SearchServer::EPSILON);
+        ASSERT(std::abs(found_docs[0].relevance - 0.2520535202036165) < SearchServer::EPSILON);
 	}
 }
 
@@ -417,68 +417,17 @@ void MatchDocuments(const SearchServer& search_server, const std::string& query)
 	}
 }
 
-void TestLambda()
-{
-	const std::vector<int> ratings1 = {1, 2, 3 , 4 , 5};
-	const std::vector<int> ratings2 = {-1, -2, 30 , -3, 44 , 5};
-	const std::vector<int> ratings3 = {12, -20, 80 , 0, 8, 0, 0, 9, 67};
-	const std::vector<int> ratings4 = {7, 0, 3 , -49 , 5};
-	const std::vector<int> ratings5 = {81, -6, 7 , 94 , -7};
-	const std::vector<int> ratings6 = {41, 8, -7 , 897 , 5};
-	const std::vector<int> ratings7 = {543, 0, 43 , 4 , -5};
-	const std::vector<int> ratings8 = {91, 7, 3 , -88 , 56};
-	const std::vector<int> ratings9 = {0, -87, 93 , 66 , 5};
-	const std::vector<int> ratings10 = {11, 2, -43 , 4 , 895};
-	const int max_ratings_length = 10;
-	const int max_rating_value = 100;
-
-	std::string stop_words = "и в на";
-	SearchServer lambda_search_server(stop_words);
-	lambda_search_server.AddDocument(0, "белый кот и модный ошейник", DocumentStatus::ACTUAL, ratings1);
-	lambda_search_server.AddDocument(1, "пушистый кот пушистый хвост", DocumentStatus::ACTUAL, ratings2);
-	lambda_search_server.AddDocument(2, "ухоженный пёс выразительные глаза", DocumentStatus::ACTUAL, ratings3);
-	lambda_search_server.AddDocument(3, "белый модный кот", DocumentStatus::IRRELEVANT, ratings4);
-	lambda_search_server.AddDocument(4, "пушистый кот пёс", DocumentStatus::IRRELEVANT, ratings5);
-	lambda_search_server.AddDocument(5, "ухоженный ошейник выразительные глаза", DocumentStatus::IRRELEVANT, ratings6);
-	lambda_search_server.AddDocument(6, "кот и ошейник", DocumentStatus::BANNED, ratings7);
-	lambda_search_server.AddDocument(7, "пёс и хвост", DocumentStatus::BANNED, ratings8);
-	lambda_search_server.AddDocument(8, "модный пёс пушистый хвост", DocumentStatus::BANNED, ratings9);
-	lambda_search_server.AddDocument(9, "кот пушистый ошейник", DocumentStatus::REMOVED, ratings10);
-	lambda_search_server.AddDocument(10, "ухоженный кот и пёс", DocumentStatus::REMOVED, ratings2);
-	lambda_search_server.AddDocument(11, "хвост и выразительные глаза", DocumentStatus::REMOVED, ratings3);
-
-	const std::string lambda_query = "пушистый ухоженный кот";
-	cout << "Ratings > 10 and Id < 7:" << endl;
-	const auto documents1 = lambda_search_server.FindTopDocuments(lambda_query,
-		[](int document_id, DocumentStatus status, int rating) {
-			return rating > 10 && document_id < 7;
-		});
-	for (const Document& document : documents1) {
-		PrintDocument(document);
-	}
-	cout << "Even documents and ACTUAL:" << endl;
-	const auto documents2 = lambda_search_server.FindTopDocuments(lambda_query,
-		[](int document_id, DocumentStatus status, int rating) {
-			return document_id % 2 == 0 && status == DocumentStatus::ACTUAL;
-		});
-	for (const Document& document : documents2) {
-		PrintDocument(document);
-	}
-}
-
 int main()
 {
-	TestLambda();
-
-	/*TestSearchServer();
+    TestSearchServer();
 
 	SearchServer search_server("и в на and with"s);
 
-	search_server.AddDocument(1, "пушистый кот пушистый хвост"s, DocumentStatus::ACTUAL, {7, 2, 7});
-	search_server.AddDocument(2, "пушистый пёс и модный ошейник"s, DocumentStatus::ACTUAL, {1, 2, 3});
-	search_server.AddDocument(3, "большой кот модный ошейник "s, DocumentStatus::ACTUAL, {1, 2, 8});
-	search_server.AddDocument(4, "большой пёс скворец евгений"s, DocumentStatus::ACTUAL, {1, 3, 2});
-	search_server.AddDocument(5, "большой пёс скворец василий"s, DocumentStatus::ACTUAL, {1, 1, 1});
+    search_server.AddDocument(10, "пушистый кот пушистый хвост"s, DocumentStatus::ACTUAL, {7, 2, 7});
+    search_server.AddDocument(20, "пушистый пёс и модный ошейник"s, DocumentStatus::ACTUAL, {1, 2, 3});
+    search_server.AddDocument(30, "большой кот модный ошейник "s, DocumentStatus::ACTUAL, {1, 2, 8});
+    search_server.AddDocument(40, "большой пёс скворец евгений"s, DocumentStatus::ACTUAL, {1, 3, 2});
+    search_server.AddDocument(50, "большой пёс скворец василий"s, DocumentStatus::ACTUAL, {1, 1, 1});
 
 	AddDocument(search_server, 1, "funny pet and nasty rat"s, DocumentStatus::ACTUAL, {7, 2, 7});
 
@@ -518,6 +467,6 @@ int main()
 	}
 
 	cout << "Before duplicates removed: "s << search_server.GetDocumentCount() << endl;
-		RemoveDuplicates(search_server);
-		cout << "After duplicates removed: "s << search_server.GetDocumentCount() << endl;*/
+    RemoveDuplicates(search_server);
+    cout << "After duplicates removed: "s << search_server.GetDocumentCount() << endl;
 }
