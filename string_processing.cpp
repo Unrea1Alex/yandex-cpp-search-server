@@ -3,15 +3,14 @@
 
 std::vector<std::string> SplitIntoWords(const std::string& text)
 {
-    std::istringstream ss(text);
-    std::vector<std::string> words;
+	std::istringstream ss(text);
+	std::vector<std::string> words;
+	std::string word;
 
-    std::string word;
+	while (ss >> word)
+	{
+		words.push_back(word);
+	}
 
-    while (ss >> word)
-    {
-        words.push_back(word);
-    }
-
-    return words;
+	return words;
 }

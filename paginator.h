@@ -3,6 +3,8 @@
 #include <iostream>
 #include <vector>
 #include <algorithm>
+#include "test_framework.h"
+
 
 template<typename It>
 class PaginatorRange
@@ -38,6 +40,8 @@ public:
 
 	Paginator(const It& begin, const It& end, size_t page_size)
 	{
+		ASSERT_HINT(page_size > 0, "Page size = " + std::to_string(page_size) + ". Must be greater zero.");
+
 		auto size = end - begin;
 
 		for(size_t i = 0; i < size; i += page_size)
@@ -67,10 +71,10 @@ template<typename T>
 std::ostream& operator<<(std::ostream& stream, const PaginatorRange<T>& pagination)
 {
 
-    for(auto it = pagination.begin(); it != pagination.end(); ++it)
-    {
-        stream << *it;
-    }
+	for(auto it = pagination.begin(); it != pagination.end(); ++it)
+	{
+		stream << *it;
+	}
 
-    return stream;
+	return stream;
 }

@@ -314,25 +314,25 @@ void TestRelevanceCorrect()
 	{
 		const auto found_docs = server.FindTopDocuments("everyday"s);
 		ASSERT_EQUAL(found_docs.size(), 1);
-        ASSERT(std::abs(found_docs[0].relevance - 0.12602676010180824) < SearchServer::EPSILON);
+		ASSERT(std::abs(found_docs[0].relevance - 0.12602676010180824) < SearchServer::EPSILON);
 	}
 
 	{
 		const auto found_docs = server.FindTopDocuments("wide"s);
 		ASSERT_EQUAL(found_docs.size(), 1);
-        ASSERT(std::abs(found_docs[0].relevance - 0.13862943611198905) < SearchServer::EPSILON);
+		ASSERT(std::abs(found_docs[0].relevance - 0.13862943611198905) < SearchServer::EPSILON);
 	}
 
 	{
 		const auto found_docs = server.FindTopDocuments("example"s);
 		ASSERT_EQUAL(found_docs.size(), 1);
-        ASSERT(std::abs(found_docs[0].relevance - 0.10663802777845313) < SearchServer::EPSILON);
+		ASSERT(std::abs(found_docs[0].relevance - 0.10663802777845313) < SearchServer::EPSILON);
 	}
 
 	{
 		const auto found_docs = server.FindTopDocuments("apparently"s);
 		ASSERT_EQUAL(found_docs.size(), 1);
-        ASSERT(std::abs(found_docs[0].relevance - 0.2520535202036165) < SearchServer::EPSILON);
+		ASSERT(std::abs(found_docs[0].relevance - 0.2520535202036165) < SearchServer::EPSILON);
 	}
 }
 
@@ -419,15 +419,15 @@ void MatchDocuments(const SearchServer& search_server, const std::string& query)
 
 int main()
 {
-    TestSearchServer();
+	TestSearchServer();
 
 	SearchServer search_server("и в на and with"s);
 
-    search_server.AddDocument(10, "пушистый кот пушистый хвост"s, DocumentStatus::ACTUAL, {7, 2, 7});
-    search_server.AddDocument(20, "пушистый пёс и модный ошейник"s, DocumentStatus::ACTUAL, {1, 2, 3});
-    search_server.AddDocument(30, "большой кот модный ошейник "s, DocumentStatus::ACTUAL, {1, 2, 8});
-    search_server.AddDocument(40, "большой пёс скворец евгений"s, DocumentStatus::ACTUAL, {1, 3, 2});
-    search_server.AddDocument(50, "большой пёс скворец василий"s, DocumentStatus::ACTUAL, {1, 1, 1});
+	search_server.AddDocument(10, "пушистый кот пушистый хвост"s, DocumentStatus::ACTUAL, {7, 2, 7});
+	search_server.AddDocument(20, "пушистый пёс и модный ошейник"s, DocumentStatus::ACTUAL, {1, 2, 3});
+	search_server.AddDocument(30, "большой кот модный ошейник "s, DocumentStatus::ACTUAL, {1, 2, 8});
+	search_server.AddDocument(40, "большой пёс скворец евгений"s, DocumentStatus::ACTUAL, {1, 3, 2});
+	search_server.AddDocument(50, "большой пёс скворец василий"s, DocumentStatus::ACTUAL, {1, 1, 1});
 
 	AddDocument(search_server, 1, "funny pet and nasty rat"s, DocumentStatus::ACTUAL, {7, 2, 7});
 
@@ -467,6 +467,6 @@ int main()
 	}
 
 	cout << "Before duplicates removed: "s << search_server.GetDocumentCount() << endl;
-    RemoveDuplicates(search_server);
-    cout << "After duplicates removed: "s << search_server.GetDocumentCount() << endl;
+	RemoveDuplicates(search_server);
+	cout << "After duplicates removed: "s << search_server.GetDocumentCount() << endl;
 }

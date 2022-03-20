@@ -24,14 +24,14 @@ public:
 	explicit SearchServer(const std::string& words);
 
 	template<typename T>
-    explicit SearchServer(T container);
+	explicit SearchServer(T container);
 
 	void SetStopWords(const std::string& text);
 
 	void AddDocument(int document_id, const std::string& document, DocumentStatus status, const std::vector<int>& ratings);
 
-    template<typename T>
-    std::vector<Document> FindTopDocuments(const std::string& raw_query, T predicate) const;
+	template<typename T>
+	std::vector<Document> FindTopDocuments(const std::string& raw_query, T predicate) const;
 	std::vector<Document> FindTopDocuments(const std::string& raw_query, DocumentStatus doc_status) const;
 	std::vector<Document> FindTopDocuments(const std::string& raw_query) const;
 
@@ -46,7 +46,7 @@ public:
 
 	void RemoveDocument(int document_id);
 
-    std::set<int> GetDuplicatedIds() const;
+	std::set<int> GetDuplicatedIds() const;
 
 private:
 
@@ -66,11 +66,11 @@ private:
 	std::set<std::string> stop_words_;
 	std::map<std::string, std::map<int, double>> word_to_document_freqs_;
 	std::map<int, DocumentData> documents_;
-    std::set<int> document_ids_;
+	std::set<int> document_ids_;
 
-    std::vector<std::string> word_ids_;
+	std::vector<std::string> word_ids_;
 
-    int AddUniqueWord(std::string word);
+	int AddUniqueWord(std::string word);
 
 	bool IsStopWord(const std::string& word) const;
 
@@ -84,98 +84,98 @@ private:
 
 	static bool IsValidWord(const std::string& word);
 
-    void CheckIsValidDocument(int document_id) const;
+	void CheckIsValidDocument(int document_id) const;
 
 	double ComputeWordInverseDocumentFreq(const std::string& word) const;
 
-    template<typename T>
-    std::vector<Document> FindAllDocuments(const Query& query, T predicate) const;
-    std::vector<Document> FindAllDocuments(const Query& query, DocumentStatus document_status) const;
+	template<typename T>
+	std::vector<Document> FindAllDocuments(const Query& query, T predicate) const;
+	std::vector<Document> FindAllDocuments(const Query& query, DocumentStatus document_status) const;
 };
 
 template<typename T>
 SearchServer::SearchServer(T container)
 {
-    using namespace std::string_literals;
+	using namespace std::string_literals;
 
-    for(const auto& w : container)
-    {
-        if(!IsValidWord(w))
-        {
+	for(const auto& w : container)
+	{
+		if(!IsValidWord(w))
+		{
 			throw std::invalid_argument("word {"s + w + "} contains illegal characters"s);
-        }
+		}
 
-        if(!w.empty())
-        {
-            stop_words_.insert(w);
-        }
-    }
+		if(!w.empty())
+		{
+			stop_words_.insert(w);
+		}
+	}
 }
 
 template<typename T>
 std::vector<Document> SearchServer::FindTopDocuments(const std::string& raw_query, T predicate) const
 {
-    const Query query = ParseQuery(raw_query);
-    auto matched_documents = FindAllDocuments(query, predicate);
+	const Query query = ParseQuery(raw_query);
+	auto matched_documents = FindAllDocuments(query, predicate);
 
-    if (matched_documents.size() > MAX_RESULT_DOCUMENT_COUNT)
-    {
-        matched_documents.resize(MAX_RESULT_DOCUMENT_COUNT);
-    }
-    return matched_documents;
+	if (matched_documents.size() > MAX_RESULT_DOCUMENT_COUNT)
+	{
+		matched_documents.resize(MAX_RESULT_DOCUMENT_COUNT);
+	}
+	return matched_documents;
 }
 
 template<typename T>
 std::vector<Document> SearchServer::FindAllDocuments(const Query& query, T predicate) const
 {
-    std::map<int, double> document_to_relevance;
-    for (const std::string& word : query.plus_words)
-    {
-        if (word_to_document_freqs_.count(word) == 0)
-        {
-            continue;
-        }
+	std::map<int, double> document_to_relevance;
+	for (const std::string& word : query.plus_words)
+	{
+		if (word_to_document_freqs_.count(word) == 0)
+		{
+			continue;
+		}
 
-        const double inverse_document_freq = ComputeWordInverseDocumentFreq(word);
+		const double inverse_document_freq = ComputeWordInverseDocumentFreq(word);
 
-        for (const auto& [document_id, term_freq] : word_to_document_freqs_.at(word))
-        {
-            if (predicate(document_id, documents_.at(document_id).status, documents_.at(document_id).rating))
-            {
-                document_to_relevance[document_id] += term_freq * inverse_document_freq;
-            }
-        }
-    }
+		for (const auto& [document_id, term_freq] : word_to_document_freqs_.at(word))
+		{
+			if (predicate(document_id, documents_.at(document_id).status, documents_.at(document_id).rating))
+			{
+				document_to_relevance[document_id] += term_freq * inverse_document_freq;
+			}
+		}
+	}
 
-    for (const std::string& word : query.minus_words)
-    {
-        if (word_to_document_freqs_.count(word) == 0)
-        {
-            continue;
-        }
-        for (const auto& [document_id, _] : word_to_document_freqs_.at(word))
-        {
-            document_to_relevance.erase(document_id);
-        }
-    }
+	for (const std::string& word : query.minus_words)
+	{
+		if (word_to_document_freqs_.count(word) == 0)
+		{
+			continue;
+		}
+		for (const auto& [document_id, _] : word_to_document_freqs_.at(word))
+		{
+			document_to_relevance.erase(document_id);
+		}
+	}
 
-    std::vector<Document> matched_documents;
-    for (const auto& [document_id, relevance] : document_to_relevance)
-    {
-        matched_documents.push_back({document_id, relevance, documents_.at(document_id).rating});
-    }
+	std::vector<Document> matched_documents;
+	for (const auto& [document_id, relevance] : document_to_relevance)
+	{
+		matched_documents.push_back({document_id, relevance, documents_.at(document_id).rating});
+	}
 
-    sort(matched_documents.begin(), matched_documents.end(), [this, predicate](const Document& lhs, const Document& rhs)
-    {
+	sort(matched_documents.begin(), matched_documents.end(), [this, predicate](const Document& lhs, const Document& rhs)
+	{
 		if (std::abs(lhs.relevance - rhs.relevance) < EPSILON)
-        {
-            return lhs.rating > rhs.rating;
-        }
-        else
-        {
-            return lhs.relevance > rhs.relevance;
-        }
-    });
+		{
+			return lhs.rating > rhs.rating;
+		}
+		else
+		{
+			return lhs.relevance > rhs.relevance;
+		}
+	});
 
-    return matched_documents;
+	return matched_documents;
 }
