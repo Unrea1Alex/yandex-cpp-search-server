@@ -67,7 +67,7 @@ private:
 	};
 
 	std::set<std::string> stop_words_;
-	std::map<std::string, std::map<int, double>> word_to_document_freqs_;
+	std::map<int, std::map<int, double>> word_to_document_freqs_;
 	std::map<int, DocumentData> documents_;
 	std::set<int> document_ids_;
 
@@ -90,6 +90,8 @@ private:
 	void CheckIsValidDocument(int document_id) const;
 
 	double ComputeWordInverseDocumentFreq(const std::string& word) const;
+
+	inline int GetWordId(std::string word) const {return std::distance(word_ids_.begin(), std::find(std::execution::par, word_ids_.begin(), word_ids_.end(), word));}
 
 	template<typename T>
 	std::vector<Document> FindAllDocuments(const Query& query, T predicate) const;
@@ -134,14 +136,14 @@ std::vector<Document> SearchServer::FindAllDocuments(const Query& query, T predi
 	std::map<int, double> document_to_relevance;
 	for (const std::string& word : query.plus_words)
 	{
-		if (word_to_document_freqs_.count(word) == 0)
+		if (word_to_document_freqs_.count(GetWordId(word)) == 0)
 		{
 			continue;
 		}
 
 		const double inverse_document_freq = ComputeWordInverseDocumentFreq(word);
 
-		for (const auto& [document_id, term_freq] : word_to_document_freqs_.at(word))
+		for (const auto& [document_id, term_freq] : word_to_document_freqs_.at(GetWordId(word)))
 		{
 			if (predicate(document_id, documents_.at(document_id).status, documents_.at(document_id).rating))
 			{
@@ -152,11 +154,11 @@ std::vector<Document> SearchServer::FindAllDocuments(const Query& query, T predi
 
 	for (const std::string& word : query.minus_words)
 	{
-		if (word_to_document_freqs_.count(word) == 0)
+		if (word_to_document_freqs_.count(GetWordId(word)) == 0)
 		{
 			continue;
 		}
-		for (const auto& [document_id, _] : word_to_document_freqs_.at(word))
+		for (const auto& [document_id, _] : word_to_document_freqs_.at(GetWordId(word)))
 		{
 			document_to_relevance.erase(document_id);
 		}

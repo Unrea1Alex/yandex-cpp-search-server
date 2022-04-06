@@ -7,7 +7,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 file(GLOB SearchServerSRC
      "*.h"
-	 "*.cpp"
+	 "*.cpp" 
 )
 
 add_executable(SearchServerQT ${SearchServerSRC})
