@@ -10,6 +10,7 @@
 #include <numeric>
 #include <sstream>
 #include <unordered_set>
+#include <execution>
 #include "document.h"
 
 class SearchServer
@@ -45,6 +46,8 @@ public:
 	const std::map<std::string, double>& GetWordFrequencies(int document_id) const;
 
 	void RemoveDocument(int document_id);
+	void RemoveDocument(std::execution::parallel_policy policy, int document_id);
+	void RemoveDocument(std::execution::sequenced_policy policy, int document_id);
 
 	std::set<int> GetDuplicatedIds() const;
 

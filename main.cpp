@@ -18,10 +18,11 @@
 #include "string_processing.h"
 #include "read_input_functions.h"
 #include "test_framework.h"
-#include "remove_duplicates.h"
+//#include "remove_duplicates.h"
 #include "request_queue.h"
 #include "process_queries.h"
 #include "log_duration.h"
+#include <execution>
 
 using namespace std;
 
@@ -31,7 +32,7 @@ auto Paginate(const Container& c, size_t page_size)
 	return Paginator(c.begin(), c.end(), page_size);
 }
 
-void TestFindDocument()
+/*void TestFindDocument()
 {
 	int doc_id = 42;
 	string content = "Reading practice to help you understand texts with everyday"s;
@@ -349,7 +350,7 @@ void TestSearchServer()
 	RUN_TEST(TestPredicate);
 	RUN_TEST(TestStatus);
 	RUN_TEST(TestRelevanceCorrect);
-}
+}*/
 
 void PrintDocument(const Document& document)
 {
@@ -420,62 +421,65 @@ void MatchDocuments(const SearchServer& search_server, const std::string& query)
 }
 
 
-        string GenerateWord(mt19937& generator, int max_length) {
-            const int length = uniform_int_distribution(1, max_length)(generator);
-            string word;
-            word.reserve(length);
-            for (int i = 0; i < length; ++i) {
-                word.push_back(uniform_int_distribution('a', 'z')(generator));
-            }
-            return word;
-        }
+string GenerateWord(mt19937& generator, int max_length) {
+    const int length = uniform_int_distribution(1, max_length)(generator);
+    string word;
+    word.reserve(length);
+    for (int i = 0; i < length; ++i) {
+        word.push_back(uniform_int_distribution('a', 'z')(generator));
+    }
+    return word;
+}
 
-        vector<string> GenerateDictionary(mt19937& generator, int word_count, int max_length) {
-            vector<string> words;
-            words.reserve(word_count);
-            for (int i = 0; i < word_count; ++i) {
-                words.push_back(GenerateWord(generator, max_length));
-            }
-            sort(words.begin(), words.end());
-            words.erase(unique(words.begin(), words.end()), words.end());
-            return words;
-        }
+vector<string> GenerateDictionary(mt19937& generator, int word_count, int max_length) {
+    vector<string> words;
+    words.reserve(word_count);
+    for (int i = 0; i < word_count; ++i) {
+        words.push_back(GenerateWord(generator, max_length));
+    }
+    sort(words.begin(), words.end());
+    words.erase(unique(words.begin(), words.end()), words.end());
+    return words;
+}
 
-        string GenerateQuery(mt19937& generator, const vector<string>& dictionary, int max_word_count) {
-            const int word_count = uniform_int_distribution(1, max_word_count)(generator);
-            string query;
-            for (int i = 0; i < word_count; ++i) {
-                if (!query.empty()) {
-                    query.push_back(' ');
-                }
-                query += dictionary[uniform_int_distribution<int>(0, dictionary.size() - 1)(generator)];
-            }
-            return query;
+string GenerateQuery(mt19937& generator, const vector<string>& dictionary, int max_word_count) {
+    const int word_count = uniform_int_distribution(1, max_word_count)(generator);
+    string query;
+    for (int i = 0; i < word_count; ++i) {
+        if (!query.empty()) {
+            query.push_back(' ');
         }
+        query += dictionary[uniform_int_distribution<int>(0, dictionary.size() - 1)(generator)];
+    }
+    return query;
+}
 
-        vector<string> GenerateQueries(mt19937& generator, const vector<string>& dictionary, int query_count, int max_word_count) {
-            vector<string> queries;
-            queries.reserve(query_count);
-            for (int i = 0; i < query_count; ++i) {
-                queries.push_back(GenerateQuery(generator, dictionary, max_word_count));
-            }
-            return queries;
-        }
+vector<string> GenerateQueries(mt19937& generator, const vector<string>& dictionary, int query_count, int max_word_count) {
+    vector<string> queries;
+    queries.reserve(query_count);
+    for (int i = 0; i < query_count; ++i) {
+        queries.push_back(GenerateQuery(generator, dictionary, max_word_count));
+    }
+    return queries;
+}
 
-        template <typename QueriesProcessor>
-        void Test(string_view mark, QueriesProcessor processor, const SearchServer& search_server, const vector<string>& queries)
-        {
-            LOG_DURATION(mark.data());
-            const auto documents_lists = processor(search_server, queries);
-        }
+template <typename ExecutionPolicy>
+void Test(string_view mark, SearchServer search_server, ExecutionPolicy&& policy) {
+    LOG_DURATION(mark);
+    const int document_count = search_server.GetDocumentCount();
+    for (int id = 0; id < document_count; ++id) {
+        search_server.RemoveDocument(policy, id);
+    }
+    cout << search_server.GetDocumentCount() << endl;
+}
 
-        #define TEST(processor) Test(#processor, processor, search_server, queries)
+#define TEST(mode) Test(#mode, search_server, execution::mode)
 
 int main()
 {
-	TestSearchServer();
+	//TestSearchServer();
 
-	SearchServer search_server("и в на and with"s);
+	/*SearchServer search_server("и в на and with"s);
 
 	search_server.AddDocument(10, "пушистый кот пушистый хвост"s, DocumentStatus::ACTUAL, {7, 2, 7});
 	search_server.AddDocument(20, "пушистый пёс и модный ошейник"s, DocumentStatus::ACTUAL, {1, 2, 3});
@@ -524,7 +528,7 @@ int main()
 	RemoveDuplicates(search_server);
 	cout << "After duplicates removed: "s << search_server.GetDocumentCount() << endl;
 
-    SearchServer search_server1("and with"s);
+    SearchServer search_server("and with"s);
 
     int id = 0;
     for (
@@ -535,8 +539,9 @@ int main()
             "pet with rat and rat and rat"s,
             "nasty rat with curly hair"s,
         }
-    ) {
-        search_server1.AddDocument(++id, text, DocumentStatus::ACTUAL, {1, 2});
+    ) 
+	{
+        search_server.AddDocument(++id, text, DocumentStatus::ACTUAL, {1, 2});
     }
 
     const vector<string> queries = {
@@ -545,20 +550,30 @@ int main()
         "curly hair"s
     };
     id = 0;
-    for ( const auto& documents : ProcessQueries(search_server1, queries))
+    for ( const auto& documents : ProcessQueries(search_server, queries))
     {
         cout << documents.size() << " documents for query ["s << queries[id++] << "]"s << endl;
-    }
+    }*/
 
-    mt19937 generator;
-        const auto dictionary = GenerateDictionary(generator, 2'000, 25);
-        const auto documents = GenerateQueries(generator, dictionary, 20'000, 10);
+mt19937 generator;
 
-        SearchServer search_server2(dictionary[0]);
+    const auto dictionary = GenerateDictionary(generator, 1000, 25);
+    const auto documents = GenerateQueries(generator, dictionary, 1000, 100);
+
+    {
+        SearchServer search_server(dictionary[0]);
         for (size_t i = 0; i < documents.size(); ++i) {
-            search_server2.AddDocument(i, documents[i], DocumentStatus::ACTUAL, {1, 2, 3});
+            search_server.AddDocument(i, documents[i], DocumentStatus::ACTUAL, {1, 2, 3});
         }
 
-        const auto queries2 = GenerateQueries(generator, dictionary, 2'000, 7);
-        TEST(ProcessQueries);
+        TEST(seq);
+    }
+    {
+        SearchServer search_server(dictionary[0]);
+        for (size_t i = 0; i < documents.size(); ++i) {
+            search_server.AddDocument(i, documents[i], DocumentStatus::ACTUAL, {1, 2, 3});
+        }
+
+        TEST(par);
+    }
 }
