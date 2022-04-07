@@ -18,7 +18,7 @@
 #include "string_processing.h"
 #include "read_input_functions.h"
 #include "test_framework.h"
-//#include "remove_duplicates.h"
+#include "remove_duplicates.h"
 #include "request_queue.h"
 #include "process_queries.h"
 #include "log_duration.h"
@@ -32,7 +32,7 @@ auto Paginate(const Container& c, size_t page_size)
 	return Paginator(c.begin(), c.end(), page_size);
 }
 
-/*void TestFindDocument()
+void TestFindDocument()
 {
 	int doc_id = 42;
 	string content = "Reading practice to help you understand texts with everyday"s;
@@ -350,7 +350,7 @@ void TestSearchServer()
 	RUN_TEST(TestPredicate);
 	RUN_TEST(TestStatus);
 	RUN_TEST(TestRelevanceCorrect);
-}*/
+}
 
 void PrintDocument(const Document& document)
 {
@@ -477,9 +477,9 @@ void Test(string_view mark, SearchServer search_server, ExecutionPolicy&& policy
 
 int main()
 {
-	//TestSearchServer();
+	TestSearchServer();
 
-	/*SearchServer search_server("и в на and with"s);
+	SearchServer search_server("и в на and with"s);
 
 	search_server.AddDocument(10, "пушистый кот пушистый хвост"s, DocumentStatus::ACTUAL, {7, 2, 7});
 	search_server.AddDocument(20, "пушистый пёс и модный ошейник"s, DocumentStatus::ACTUAL, {1, 2, 3});
@@ -528,6 +528,7 @@ int main()
 	RemoveDuplicates(search_server);
 	cout << "After duplicates removed: "s << search_server.GetDocumentCount() << endl;
 
+	{
     SearchServer search_server("and with"s);
 
     int id = 0;
@@ -553,27 +554,31 @@ int main()
     for ( const auto& documents : ProcessQueries(search_server, queries))
     {
         cout << documents.size() << " documents for query ["s << queries[id++] << "]"s << endl;
-    }*/
-
-mt19937 generator;
-
-    const auto dictionary = GenerateDictionary(generator, 10000, 25);
-    const auto documents = GenerateQueries(generator, dictionary, 10000, 100);
-
-    {
-        SearchServer search_server(dictionary[0]);
-        for (size_t i = 0; i < documents.size(); ++i) {
-            search_server.AddDocument(i, documents[i], DocumentStatus::ACTUAL, {1, 2, 3});
-        }
-
-        TEST(seq);
     }
-    {
-        SearchServer search_server(dictionary[0]);
-        for (size_t i = 0; i < documents.size(); ++i) {
-            search_server.AddDocument(i, documents[i], DocumentStatus::ACTUAL, {1, 2, 3});
-        }
 
-        TEST(par);
-    }
+	}
+
+	{
+		mt19937 generator;
+
+		const auto dictionary = GenerateDictionary(generator, 10000, 25);
+		const auto documents = GenerateQueries(generator, dictionary, 1000, 100);
+
+		{
+			SearchServer search_server(dictionary[0]);
+			for (size_t i = 0; i < documents.size(); ++i) {
+				search_server.AddDocument(i, documents[i], DocumentStatus::ACTUAL, {1, 2, 3});
+			}
+
+			TEST(seq);
+		}
+		{
+			SearchServer search_server(dictionary[0]);
+			for (size_t i = 0; i < documents.size(); ++i) {
+				search_server.AddDocument(i, documents[i], DocumentStatus::ACTUAL, {1, 2, 3});
+			}
+
+			TEST(par);
+		}
+	}
 }

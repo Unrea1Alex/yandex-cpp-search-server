@@ -1,5 +1,7 @@
 #include <cmath>
 #include <iostream>
+#include <future>
+#include <thread>
 #include "search_server.h"
 #include "string_processing.h"
 
@@ -25,7 +27,7 @@ void SearchServer::SetStopWords(const std::string& words)
 
 int SearchServer::AddUniqueWord(std::string word)
 {
-	auto it = std::find(word_ids_.begin(), word_ids_.end(), word);
+	auto it = std::find(std::execution::par, word_ids_.begin(), word_ids_.end(), word);
 
 	if(it == word_ids_.end())
 	{
@@ -160,12 +162,11 @@ void SearchServer::RemoveDocument(std::execution::parallel_policy policy, int do
 
 	std::for_each(policy, words_ids.begin(), words_ids.end(), [document_id, this](int id)
 	{
-		word_to_document_freqs_.at(id).erase(document_id);
+		word_to_document_freqs_[id].erase(document_id);
 	});
 
 	document_ids_.erase(document_id);
 	documents_.erase(document_id);
-
 }
 
 std::set<int> SearchServer::GetDuplicatedIds() const
