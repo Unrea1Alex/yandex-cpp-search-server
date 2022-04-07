@@ -1,7 +1,7 @@
 #include <cmath>
 #include <iostream>
-#include <future>
-#include <thread>
+#include <array>
+
 #include "search_server.h"
 #include "string_processing.h"
 
@@ -57,7 +57,6 @@ void SearchServer::AddDocument(int document_id, const std::string& document, Doc
 
 	documents_.emplace(document_id, DocumentData{ ComputeAverageRating(ratings), status, document_words_ids });
 	document_ids_.emplace(document_id);
-
 }
 
 std::vector<Document> SearchServer::FindTopDocuments(const std::string& raw_query, DocumentStatus doc_status) const
@@ -158,11 +157,25 @@ void SearchServer::RemoveDocument(std::execution::sequenced_policy policy, int d
 
 void SearchServer::RemoveDocument(std::execution::parallel_policy policy, int document_id)
 {
-	auto words_ids = documents_[document_id].word_ids;
+	/*auto words_ids = documents_[document_id].word_ids;
 
 	std::for_each(policy, words_ids.begin(), words_ids.end(), [document_id, this](int id)
 	{
 		word_to_document_freqs_[id].erase(document_id);
+	});*/
+
+	auto words_ids = documents_[document_id].word_ids;
+
+	std::array<std::map<int, double>*, words_ids.size()> v[words_ids.size()];
+
+	std::for_each(policy, words_ids.begin(), words_ids.end(), [document_id, this, &v](int id)
+	{
+		v.emplace_back(&(word_to_document_freqs_[id])); //.erase(document_id);
+	});
+
+	std::for_each(policy, v.begin(), v.end(), [document_id, this](auto m)
+	{
+		m->erase(document_id);
 	});
 
 	document_ids_.erase(document_id);

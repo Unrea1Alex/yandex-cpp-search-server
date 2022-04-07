@@ -477,7 +477,7 @@ void Test(string_view mark, SearchServer search_server, ExecutionPolicy&& policy
 
 int main()
 {
-	TestSearchServer();
+	/*TestSearchServer();
 
 	SearchServer search_server("и в на and with"s);
 
@@ -556,7 +556,7 @@ int main()
         cout << documents.size() << " documents for query ["s << queries[id++] << "]"s << endl;
     }
 
-	}
+	}*/
 
 	{
 		mt19937 generator;
@@ -571,6 +571,8 @@ int main()
 			}
 
 			TEST(seq);
+
+			std::cout << "test 1" << "\n";
 		}
 		{
 			SearchServer search_server(dictionary[0]);
@@ -579,6 +581,8 @@ int main()
 			}
 
 			TEST(par);
+
+			std::cout << "test 2" << "\n";
 		}
 	}
 }
