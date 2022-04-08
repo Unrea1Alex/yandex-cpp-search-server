@@ -1,6 +1,7 @@
 #include <cmath>
 #include <iostream>
 #include <array>
+#include <string_view>
 
 #include "search_server.h"
 #include "string_processing.h"
@@ -25,18 +26,20 @@ void SearchServer::SetStopWords(const std::string& words)
 	stop_words_.insert(std::begin(str_vector), std::end(str_vector));
 }
 
-int SearchServer::AddUniqueWord(std::string word)
+std::string_view SearchServer::AddUniqueWord(std::string_view word)
 {
-	auto it = std::find(std::execution::par, word_ids_.begin(), word_ids_.end(), word);
+	//auto it = std::find(std::execution::par, unique_words.begin(), unique_words.end(), word);
 
-	if(it == word_ids_.end())
+	/*if(it == unique_words.end())
 	{
-		word_ids_.push_back(word);
+		unique_words.push_back(word.data());
 
-		return word_ids_.size() - 1;
+		return unique_words.size() - 1;
 	}
 
-	return std::distance(word_ids_.begin(), it);
+	return std::distance(unique_words.begin(), it);*/
+
+	return *((unique_words.insert(word.data())).first);
 }
 
 void SearchServer::AddDocument(int document_id, const std::string& document, DocumentStatus status, const std::vector<int>& ratings)
@@ -47,16 +50,34 @@ void SearchServer::AddDocument(int document_id, const std::string& document, Doc
 
 	const double inv_word_count = 1.0 / words.size();
 
-	std::set<int> document_words_ids;
+	std::set<std::string_view> document_words_ids;
+
+	//std::chrono::nanoseconds dur_sum;
 
 	for (const std::string& word : words)
 	{
-		word_to_document_freqs_[GetWordId(word)][document_id] += inv_word_count;
-		document_words_ids.emplace(AddUniqueWord(word));
+		//std::chrono::steady_clock::time_point start_time_ = std::chrono::steady_clock::now();
+
+		std::string_view w = AddUniqueWord(word);
+
+		word_to_document_freqs_[w][document_id] += inv_word_count;
+		document_words_ids.emplace(w);
+
+		//const auto end_time = std::chrono::steady_clock::now();
+    	//const auto dur = end_time - start_time_;
+
+		//dur_sum += dur;
 	}
+
+	//std::cerr << words.size() << ": "s << std::chrono::duration_cast<std::chrono::milliseconds>(dur_sum).count() << " ms"s << std::endl;
 
 	documents_.emplace(document_id, DocumentData{ ComputeAverageRating(ratings), status, document_words_ids });
 	document_ids_.emplace(document_id);
+}
+
+int SearchServer::GetWordId(std::string_view word) const
+{
+	return std::distance(unique_words.begin(), std::find(std::execution::par, unique_words.begin(), unique_words.end(), word));
 }
 
 std::vector<Document> SearchServer::FindTopDocuments(const std::string& raw_query, DocumentStatus doc_status) const
@@ -80,22 +101,22 @@ std::tuple<std::vector<std::string>, DocumentStatus> SearchServer::MatchDocument
 	std::vector<std::string> matched_words;
 	for (const std::string& word : query.plus_words)
 	{
-		if (word_to_document_freqs_.count(GetWordId(word)) == 0)
+		if (word_to_document_freqs_.count(word) == 0)
 		{
 			continue;
 		}
-		if (word_to_document_freqs_.at(GetWordId(word)).count(document_id))
+		if (word_to_document_freqs_.at(word).count(document_id))
 		{
 			matched_words.push_back(word);
 		}
 	}
 	for (const std::string& word : query.minus_words)
 	{
-		if (word_to_document_freqs_.count(GetWordId(word)) == 0)
+		if (word_to_document_freqs_.count(word) == 0)
 		{
 			continue;
 		}
-		if (word_to_document_freqs_.at(GetWordId(word)).count(document_id))
+		if (word_to_document_freqs_.at(word).count(document_id))
 		{
 			matched_words.clear();
 			break;
@@ -124,7 +145,7 @@ const std::map<std::string, double>& SearchServer::GetWordFrequencies(int docume
 
 		if(it != freq_map.end())
 		{
-			result.at(word_ids_.at(str)) = it->second;
+			result.at(str.data()) = it->second;
 		}
 	}
 
@@ -133,22 +154,24 @@ const std::map<std::string, double>& SearchServer::GetWordFrequencies(int docume
 
 void SearchServer::RemoveDocument(int document_id)
 {
+	auto words_ids = documents_.at(document_id).words;
+
+	for(auto id : words_ids) 
+	{
+		word_to_document_freqs_.at(id).erase(document_id);
+	}
+
 	document_ids_.erase(document_id);
 	documents_.erase(document_id);
-
-	for(auto& [str, fr] : word_to_document_freqs_)
-	{
-		fr.erase(document_id);
-	}
 }
 
 void SearchServer::RemoveDocument(std::execution::sequenced_policy policy, int document_id)
 {
-	auto words_ids = documents_.at(document_id).word_ids;
+	auto words_ids = documents_.at(document_id).words;
 
-	std::for_each(policy, words_ids.begin(), words_ids.end(), [document_id, this](int id)
+	std::for_each(policy, words_ids.begin(), words_ids.end(), [document_id, this](std::string_view word)
 	{
-		word_to_document_freqs_.at(id).erase(document_id);
+		word_to_document_freqs_.at(word).erase(document_id);
 	});
 
 	document_ids_.erase(document_id);
@@ -157,25 +180,11 @@ void SearchServer::RemoveDocument(std::execution::sequenced_policy policy, int d
 
 void SearchServer::RemoveDocument(std::execution::parallel_policy policy, int document_id)
 {
-	/*auto words_ids = documents_[document_id].word_ids;
+	auto words_ids = documents_[document_id].words;
 
-	std::for_each(policy, words_ids.begin(), words_ids.end(), [document_id, this](int id)
+	std::for_each(policy, words_ids.begin(), words_ids.end(), [document_id, this](std::string_view word)
 	{
-		word_to_document_freqs_[id].erase(document_id);
-	});*/
-
-	auto words_ids = documents_[document_id].word_ids;
-
-	std::array<std::map<int, double>*, words_ids.size()> v[words_ids.size()];
-
-	std::for_each(policy, words_ids.begin(), words_ids.end(), [document_id, this, &v](int id)
-	{
-		v.emplace_back(&(word_to_document_freqs_[id])); //.erase(document_id);
-	});
-
-	std::for_each(policy, v.begin(), v.end(), [document_id, this](auto m)
-	{
-		m->erase(document_id);
+		word_to_document_freqs_[word].erase(document_id);
 	});
 
 	document_ids_.erase(document_id);
@@ -185,7 +194,7 @@ void SearchServer::RemoveDocument(std::execution::parallel_policy policy, int do
 std::set<int> SearchServer::GetDuplicatedIds() const
 {
 	std::set<int> result;
-	std::set<std::set<int>> unique_ids;
+	std::set<std::set<std::string_view>> unique_ids;
 
 	auto current = std::begin(documents_);
 	const auto last = std::end(documents_);
@@ -194,9 +203,9 @@ std::set<int> SearchServer::GetDuplicatedIds() const
 	{
 		auto&& [key, value] = *current;
 
-		if(unique_ids.count(value.word_ids) == 0)
+		if(unique_ids.count(value.words) == 0)
 		{
-			unique_ids.emplace(value.word_ids);
+			unique_ids.emplace(value.words);
 		}
 		else
 		{
@@ -307,7 +316,7 @@ void SearchServer::CheckIsValidDocument(int document_id) const
 
 double SearchServer::ComputeWordInverseDocumentFreq(const std::string& word) const
 {
-	return std::log(GetDocumentCount() * 1.0 / word_to_document_freqs_.at(GetWordId(word)).size());
+	return std::log(GetDocumentCount() * 1.0 / word_to_document_freqs_.at(word).size());
 }
 
 std::vector<Document> SearchServer::FindAllDocuments(const Query& query, DocumentStatus document_status) const

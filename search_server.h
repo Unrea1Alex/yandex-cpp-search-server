@@ -11,6 +11,7 @@
 #include <sstream>
 #include <unordered_set>
 #include <execution>
+#include <chrono>
 #include "document.h"
 
 class SearchServer
@@ -67,13 +68,13 @@ private:
 	};
 
 	std::set<std::string> stop_words_;
-	std::map<int, std::map<int, double>> word_to_document_freqs_;
+	std::map<std::string_view, std::map<int, double>> word_to_document_freqs_;
 	std::map<int, DocumentData> documents_;
 	std::set<int> document_ids_;
 
-	std::vector<std::string> word_ids_;
+	std::set<std::string> unique_words;
 
-	int AddUniqueWord(std::string word);
+	std::string_view AddUniqueWord(std::string_view word);
 
 	bool IsStopWord(const std::string& word) const;
 
@@ -91,7 +92,7 @@ private:
 
 	double ComputeWordInverseDocumentFreq(const std::string& word) const;
 
-	inline int GetWordId(std::string word) const {return std::distance(word_ids_.begin(), std::find(std::execution::par, word_ids_.begin(), word_ids_.end(), word));}
+	int GetWordId(std::string_view word) const;
 
 	template<typename T>
 	std::vector<Document> FindAllDocuments(const Query& query, T predicate) const;
@@ -136,14 +137,14 @@ std::vector<Document> SearchServer::FindAllDocuments(const Query& query, T predi
 	std::map<int, double> document_to_relevance;
 	for (const std::string& word : query.plus_words)
 	{
-		if (word_to_document_freqs_.count(GetWordId(word)) == 0)
+		if (word_to_document_freqs_.count(word) == 0)
 		{
 			continue;
 		}
 
 		const double inverse_document_freq = ComputeWordInverseDocumentFreq(word);
 
-		for (const auto& [document_id, term_freq] : word_to_document_freqs_.at(GetWordId(word)))
+		for (const auto& [document_id, term_freq] : word_to_document_freqs_.at(word))
 		{
 			if (predicate(document_id, documents_.at(document_id).status, documents_.at(document_id).rating))
 			{
@@ -154,11 +155,11 @@ std::vector<Document> SearchServer::FindAllDocuments(const Query& query, T predi
 
 	for (const std::string& word : query.minus_words)
 	{
-		if (word_to_document_freqs_.count(GetWordId(word)) == 0)
+		if (word_to_document_freqs_.count(word) == 0)
 		{
 			continue;
 		}
-		for (const auto& [document_id, _] : word_to_document_freqs_.at(GetWordId(word)))
+		for (const auto& [document_id, _] : word_to_document_freqs_.at(word))
 		{
 			document_to_relevance.erase(document_id);
 		}

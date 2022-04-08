@@ -562,7 +562,7 @@ int main()
 		mt19937 generator;
 
 		const auto dictionary = GenerateDictionary(generator, 10000, 25);
-		const auto documents = GenerateQueries(generator, dictionary, 1000, 100);
+		const auto documents = GenerateQueries(generator, dictionary, 10000, 100);
 
 		{
 			SearchServer search_server(dictionary[0]);

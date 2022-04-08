@@ -12,3 +12,18 @@ std::vector<std::vector<Document>> ProcessQueries(const SearchServer& search_ser
 
     return result;
 }
+
+std::list<Document> ProcessQueriesJoined(const SearchServer& search_server, const std::vector<std::string>& queries)
+{
+    std::vector<std::vector<Document>> docs = ProcessQueries(search_server, queries);
+
+    std::list<Document> result;
+
+    std::for_each(std::execution::seq, docs.begin(), docs.end(), [&result](auto& doc)
+    {
+        result.insert(result.end(), doc.begin(), doc.end());
+    });
+
+    return result;
+
+}
