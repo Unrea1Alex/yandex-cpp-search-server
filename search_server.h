@@ -12,6 +12,7 @@
 #include <unordered_set>
 #include <execution>
 #include <chrono>
+#include <unordered_set>
 #include "document.h"
 
 class SearchServer
@@ -40,6 +41,8 @@ public:
 	int GetDocumentCount() const;
 
 	std::tuple<std::vector<std::string>, DocumentStatus> MatchDocument(const std::string& raw_query, int document_id) const;
+	std::tuple<std::vector<std::string>, DocumentStatus> MatchDocument(std::execution::sequenced_policy policy, const std::string& raw_query, int document_id) const;
+	std::tuple<std::vector<std::string>, DocumentStatus> MatchDocument(std::execution::parallel_policy policy, const std::string& raw_query, int document_id) const;
 
 	std::set<int>::iterator begin() const;
 	std::set<int>::iterator end() const;
@@ -63,16 +66,18 @@ private:
 
 	struct Query
 	{
-		std::set<std::string> plus_words;
-		std::set<std::string> minus_words;
+		std::unordered_set<std::string> plus_words;
+		std::unordered_set<std::string> minus_words;
 	};
 
-	std::set<std::string> stop_words_;
+	std::unordered_set<std::string> stop_words_;
 	std::map<std::string_view, std::map<int, double>> word_to_document_freqs_;
 	std::map<int, DocumentData> documents_;
 	std::set<int> document_ids_;
 
-	std::set<std::string> unique_words;
+	std::unordered_set<std::string> unique_words;
+
+	std::vector<float> tmp;
 
 	std::string_view AddUniqueWord(std::string_view word);
 
@@ -82,7 +87,7 @@ private:
 
 	static int ComputeAverageRating(const std::vector<int>& ratings);
 
-	QueryWord ParseQueryWord(std::string text) const;
+	QueryWord ParseQueryWord(const std::string& text) const;
 
 	Query ParseQuery(const std::string& text) const;
 
@@ -135,14 +140,14 @@ template<typename T>
 std::vector<Document> SearchServer::FindAllDocuments(const Query& query, T predicate) const
 {
 	std::map<int, double> document_to_relevance;
-	for (const std::string& word : query.plus_words)
+	for (const auto word : query.plus_words)
 	{
 		if (word_to_document_freqs_.count(word) == 0)
 		{
 			continue;
 		}
 
-		const double inverse_document_freq = ComputeWordInverseDocumentFreq(word);
+		const double inverse_document_freq = ComputeWordInverseDocumentFreq(std::string(word).data());
 
 		for (const auto& [document_id, term_freq] : word_to_document_freqs_.at(word))
 		{
@@ -153,13 +158,13 @@ std::vector<Document> SearchServer::FindAllDocuments(const Query& query, T predi
 		}
 	}
 
-	for (const std::string& word : query.minus_words)
+	for (const auto word : query.minus_words)
 	{
-		if (word_to_document_freqs_.count(word) == 0)
+		if (word_to_document_freqs_.count(word.data()) == 0)
 		{
 			continue;
 		}
-		for (const auto& [document_id, _] : word_to_document_freqs_.at(word))
+		for (const auto& [document_id, _] : word_to_document_freqs_.at(word.data()))
 		{
 			document_to_relevance.erase(document_id);
 		}
