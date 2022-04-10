@@ -13,7 +13,6 @@
 #include <execution>
 #include <chrono>
 #include <unordered_set>
-#include <deque>
 #include "document.h"
 
 class SearchServer
@@ -32,15 +31,7 @@ public:
 
 	void SetStopWords(const std::string& text);
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-	void AddDocument(int document_id, std::string_view document, DocumentStatus status, const std::vector<int>& ratings);
-=======
 	void AddDocument(int document_id, const std::string& document, DocumentStatus status, const std::vector<int>& ratings);
->>>>>>> parent of a8b72ec (12.9.3  slow)
-=======
-	void AddDocument(int document_id, const std::string& document, DocumentStatus status, const std::vector<int>& ratings);
->>>>>>> parent of a8b72ec (12.9.3  slow)
 
 	template<typename T>
 	std::vector<Document> FindTopDocuments(const std::string& raw_query, T predicate) const;
@@ -84,23 +75,15 @@ private:
 	std::map<int, DocumentData> documents_;
 	std::set<int> document_ids_;
 
-	std::set<std::string, std::less<>> unique_words;
+	std::unordered_set<std::string> unique_words;
 
 	std::vector<float> tmp;
 
-	std::string_view AddUniqueWord(const std::string& word);
+	std::string_view AddUniqueWord(std::string_view word);
 
 	bool IsStopWord(const std::string& word) const;
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-	std::vector<std::string_view> SplitIntoWordsNoStop(const std::string_view text) const;
-=======
 	std::vector<std::string> SplitIntoWordsNoStop(const std::string& text) const;
->>>>>>> parent of a8b72ec (12.9.3  slow)
-=======
-	std::vector<std::string> SplitIntoWordsNoStop(const std::string& text) const;
->>>>>>> parent of a8b72ec (12.9.3  slow)
 
 	static int ComputeAverageRating(const std::vector<int>& ratings);
 
@@ -113,6 +96,8 @@ private:
 	void CheckIsValidDocument(int document_id) const;
 
 	double ComputeWordInverseDocumentFreq(const std::string& word) const;
+
+	int GetWordId(std::string_view word) const;
 
 	template<typename T>
 	std::vector<Document> FindAllDocuments(const Query& query, T predicate) const;

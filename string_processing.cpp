@@ -3,8 +3,7 @@
 #include <iterator>
 #include "log_duration.h"
 
-<<<<<<< HEAD
-<<<<<<< HEAD
+
 /*std::vector<std::string> SplitIntoWords(std::string_view text)
 =======
 std::vector<std::string> SplitIntoWords(const std::string& text)
