@@ -79,12 +79,11 @@ std::tuple<std::vector<std::string_view>, DocumentStatus> SearchServer::MatchDoc
 	const Query query = ParseQuery(raw_query);
 	std::vector<std::string_view> matched_words;
 
-	for (const auto word : query.minus_words)
+	auto it = std::find_first_of(documents_.at(document_id).words.begin(), documents_.at(document_id).words.end(), query.minus_words.begin(), query.minus_words.end());
+	
+	if(it != documents_.at(document_id).words.end())
 	{
-		if (std::find(documents_.at(document_id).words.begin(), documents_.at(document_id).words.end(), word) != documents_.at(document_id).words.end());
-		{
-			return {matched_words, documents_.at(document_id).status};
-		}
+		return {matched_words, documents_.at(document_id).status};
 	}
 
 	for (const auto word : query.plus_words)
