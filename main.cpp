@@ -360,7 +360,7 @@ void PrintDocument(const Document& document)
 		 << "rating = "s << document.rating << " }"s << std::endl;
 }
 
-void PrintMatchDocumentResult(int document_id, const std::vector<std::string>& words, DocumentStatus status) {
+void PrintMatchDocumentResult(int document_id, const std::vector<std::string_view>& words, DocumentStatus status) {
 	std::cout << "{ "s
 		 << "document_id = "s << document_id << ", "s
 		 << "status = "s << static_cast<int>(status) << ", "s
@@ -371,8 +371,7 @@ void PrintMatchDocumentResult(int document_id, const std::vector<std::string>& w
 	std::cout << "}"s << std::endl;
 }
 
-void AddDocument(SearchServer& search_server, int document_id, const std::string& document, DocumentStatus status,
-				 const std::vector<int>& ratings)
+void AddDocument(SearchServer& search_server, int document_id, const std::string& document, DocumentStatus status, const std::vector<int>& ratings)
 {
 	try
 	{

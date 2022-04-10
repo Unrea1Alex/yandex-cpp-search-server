@@ -40,9 +40,9 @@ public:
 
 	int GetDocumentCount() const;
 
-	std::tuple<std::vector<std::string>, DocumentStatus> MatchDocument(const std::string& raw_query, int document_id) const;
-	std::tuple<std::vector<std::string>, DocumentStatus> MatchDocument(std::execution::sequenced_policy policy, const std::string& raw_query, int document_id) const;
-	std::tuple<std::vector<std::string>, DocumentStatus> MatchDocument(std::execution::parallel_policy policy, const std::string& raw_query, int document_id) const;
+	std::tuple<std::vector<std::string_view>, DocumentStatus> MatchDocument(const std::string& raw_query, int document_id) const;
+	std::tuple<std::vector<std::string_view>, DocumentStatus> MatchDocument(std::execution::sequenced_policy policy, const std::string& raw_query, int document_id) const;
+	std::tuple<std::vector<std::string_view>, DocumentStatus> MatchDocument(std::execution::parallel_policy policy, const std::string& raw_query, int document_id) const;
 
 	std::set<int>::iterator begin() const;
 	std::set<int>::iterator end() const;
@@ -96,8 +96,6 @@ private:
 	void CheckIsValidDocument(int document_id) const;
 
 	double ComputeWordInverseDocumentFreq(const std::string& word) const;
-
-	int GetWordId(std::string_view word) const;
 
 	template<typename T>
 	std::vector<Document> FindAllDocuments(const Query& query, T predicate) const;

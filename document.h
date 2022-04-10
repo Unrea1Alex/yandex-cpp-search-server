@@ -2,6 +2,7 @@
 
 #include <sstream>
 #include <set>
+#include <vector>
 
 enum class DocumentStatus
 {
@@ -26,7 +27,7 @@ struct DocumentData
 {
 	int rating;
 	DocumentStatus status;
-	std::set<std::string_view> words;
+	std::vector<std::string_view> words;
 };
 
 std::ostream& operator<<(std::ostream& stream, const Document& document);
