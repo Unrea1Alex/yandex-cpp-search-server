@@ -27,30 +27,36 @@ public:
 
 	explicit SearchServer(const std::string& words);
 
-	explicit SearchServer(const std::string_view words);
-
 	template<typename T>
 	explicit SearchServer(T container);
 
-	void SetStopWords(const std::string_view text);
+	void SetStopWords(const std::string& text);
 
+<<<<<<< HEAD
+<<<<<<< HEAD
 	void AddDocument(int document_id, std::string_view document, DocumentStatus status, const std::vector<int>& ratings);
+=======
+	void AddDocument(int document_id, const std::string& document, DocumentStatus status, const std::vector<int>& ratings);
+>>>>>>> parent of a8b72ec (12.9.3  slow)
+=======
+	void AddDocument(int document_id, const std::string& document, DocumentStatus status, const std::vector<int>& ratings);
+>>>>>>> parent of a8b72ec (12.9.3  slow)
 
 	template<typename T>
-	std::vector<Document> FindTopDocuments(const std::string_view raw_query, T predicate) const;
-	std::vector<Document> FindTopDocuments(const std::string_view raw_query, DocumentStatus doc_status) const;
-	std::vector<Document> FindTopDocuments(const std::string_view raw_query) const;
+	std::vector<Document> FindTopDocuments(const std::string& raw_query, T predicate) const;
+	std::vector<Document> FindTopDocuments(const std::string& raw_query, DocumentStatus doc_status) const;
+	std::vector<Document> FindTopDocuments(const std::string& raw_query) const;
 
 	int GetDocumentCount() const;
 
-	std::tuple<std::vector<std::string_view>, DocumentStatus> MatchDocument(const std::string_view raw_query, int document_id) const;
-	std::tuple<std::vector<std::string_view>, DocumentStatus> MatchDocument(std::execution::sequenced_policy policy, const std::string_view raw_query, int document_id) const;
-	std::tuple<std::vector<std::string_view>, DocumentStatus> MatchDocument(std::execution::parallel_policy policy, const std::string_view raw_query, int document_id) const;
+	std::tuple<std::vector<std::string>, DocumentStatus> MatchDocument(const std::string& raw_query, int document_id) const;
+	std::tuple<std::vector<std::string>, DocumentStatus> MatchDocument(std::execution::sequenced_policy policy, const std::string& raw_query, int document_id) const;
+	std::tuple<std::vector<std::string>, DocumentStatus> MatchDocument(std::execution::parallel_policy policy, const std::string& raw_query, int document_id) const;
 
 	std::set<int>::iterator begin() const;
 	std::set<int>::iterator end() const;
 
-	const std::map<std::string_view, double>& GetWordFrequencies(int document_id) const;
+	const std::map<std::string, double>& GetWordFrequencies(int document_id) const;
 
 	void RemoveDocument(int document_id);
 	void RemoveDocument(std::execution::parallel_policy policy, int document_id);
@@ -86,13 +92,21 @@ private:
 
 	bool IsStopWord(const std::string& word) const;
 
+<<<<<<< HEAD
+<<<<<<< HEAD
 	std::vector<std::string_view> SplitIntoWordsNoStop(const std::string_view text) const;
+=======
+	std::vector<std::string> SplitIntoWordsNoStop(const std::string& text) const;
+>>>>>>> parent of a8b72ec (12.9.3  slow)
+=======
+	std::vector<std::string> SplitIntoWordsNoStop(const std::string& text) const;
+>>>>>>> parent of a8b72ec (12.9.3  slow)
 
 	static int ComputeAverageRating(const std::vector<int>& ratings);
 
 	QueryWord ParseQueryWord(const std::string& text) const;
 
-	Query ParseQuery(const std::string_view text) const;
+	Query ParseQuery(const std::string& text) const;
 
 	static bool IsValidWord(const std::string& word);
 
@@ -110,22 +124,22 @@ SearchServer::SearchServer(T container)
 {
 	using namespace std::string_literals;
 
-	for(const auto& item : container)
+	for(const auto& w : container)
 	{
-		if(!IsValidWord(item))
+		if(!IsValidWord(w))
 		{
-			throw std::invalid_argument("word {"s + item + "} contains illegal characters"s);
+			throw std::invalid_argument("word {"s + w + "} contains illegal characters"s);
 		}
 
-		if(!item.empty())
+		if(!w.empty())
 		{
-			stop_words_.insert(item);
+			stop_words_.insert(w);
 		}
 	}
 }
 
 template<typename T>
-std::vector<Document> SearchServer::FindTopDocuments(const std::string_view raw_query, T predicate) const
+std::vector<Document> SearchServer::FindTopDocuments(const std::string& raw_query, T predicate) const
 {
 	const Query query = ParseQuery(raw_query);
 	auto matched_documents = FindAllDocuments(query, predicate);

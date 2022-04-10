@@ -3,9 +3,17 @@
 #include <iterator>
 #include "log_duration.h"
 
+<<<<<<< HEAD
+<<<<<<< HEAD
 /*std::vector<std::string> SplitIntoWords(std::string_view text)
+=======
+std::vector<std::string> SplitIntoWords(const std::string& text)
+>>>>>>> parent of a8b72ec (12.9.3  slow)
+=======
+std::vector<std::string> SplitIntoWords(const std::string& text)
+>>>>>>> parent of a8b72ec (12.9.3  slow)
 {
-	std::istringstream ss(text.data());
+	std::istringstream ss(text);
 	std::vector<std::string> words;
 
 	std::copy(std::istream_iterator<std::string>(ss), std::istream_iterator<std::string>(), std::back_inserter(words));
