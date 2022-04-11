@@ -29,7 +29,7 @@ public:
 	template<typename T>
 	explicit SearchServer(T container);
 
-	void SetStopWords(const std::string& text);
+	void SetStopWords(const std::string_view text);
 
 	void AddDocument(int document_id, const std::string& document, DocumentStatus status, const std::vector<int>& ratings);
 
@@ -59,7 +59,7 @@ private:
 
 	struct QueryWord
 	{
-		std::string data;
+		std::string_view data;
 		bool is_minus;
 		bool is_stop;
 	};
@@ -75,19 +75,21 @@ private:
 	std::map<int, DocumentData> documents_;
 	std::set<int> document_ids_;
 
-	std::unordered_set<std::string> unique_words;
+	std::set<std::string> unique_words;
 
-	std::vector<float> tmp;
 
-	std::string_view AddUniqueWord(std::string_view word);
+	std::string current_document;
+
+
+	std::string_view AddUniqueWord(const std::string_view word);
 
 	bool IsStopWord(const std::string& word) const;
 
-	std::vector<std::string> SplitIntoWordsNoStop(const std::string& text) const;
+	std::vector<std::string> SplitIntoWordsNoStop(const std::string_view text) const;
 
 	static int ComputeAverageRating(const std::vector<int>& ratings);
 
-	QueryWord ParseQueryWord(const std::string& text) const;
+	QueryWord ParseQueryWord(const std::string_view text) const;
 
 	Query ParseQuery(const std::string& text) const;
 
