@@ -339,6 +339,30 @@ void TestRelevanceCorrect()
 	}
 }
 
+void TestDocumentsMatching() 
+{
+		using namespace std::string_literals;
+
+    const int doc_id = 42;
+    const std::string content = "cat in the city";
+    const std::vector<int> ratings = {1, 2, 3};
+
+    SearchServer server;
+    server.AddDocument(doc_id, "cat in the city"s, DocumentStatus::ACTUAL, ratings);
+
+    std::vector<std::string_view> result_vec;
+    DocumentStatus result_status;
+    tie(result_vec, result_status) = server.MatchDocument("cat", 42);
+
+		for(auto res : result_vec)
+		{
+			std::cout << res << std::endl;
+		}
+
+    //std::cout << "Returned: " << result_vec << std::endl;
+    // More code here
+}
+
 void TestSearchServer()
 {
 	RUN_TEST(TestFindDocument);
@@ -350,6 +374,7 @@ void TestSearchServer()
 	RUN_TEST(TestPredicate);
 	RUN_TEST(TestStatus);
 	RUN_TEST(TestRelevanceCorrect);
+	RUN_TEST(TestDocumentsMatching);
 }
 
 void PrintDocument(const Document& document)
@@ -525,6 +550,7 @@ void Test(string_view mark, SearchServer search_server, const string& query, Exe
     int word_count = 0;
     for (int id = 0; id < document_count; ++id) {
         const auto [words, status] = search_server.MatchDocument(policy, query, id);
+
         word_count += words.size();
     }
     cout << word_count << endl;
@@ -534,7 +560,7 @@ void Test(string_view mark, SearchServer search_server, const string& query, Exe
 
 int main()
 {
-	/*TestSearchServer();
+	TestSearchServer();
 
 	SearchServer search_server("и в на and with"s);
 
@@ -583,9 +609,9 @@ int main()
 
 	cout << "Before duplicates removed: "s << search_server.GetDocumentCount() << endl;
 	RemoveDuplicates(search_server);
-	cout << "After duplicates removed: "s << search_server.GetDocumentCount() << endl;*/
+	cout << "After duplicates removed: "s << search_server.GetDocumentCount() << endl;
 
-	/*{
+	{
     SearchServer search_server("and with"s);
 
     int id = 0;
@@ -613,7 +639,7 @@ int main()
         cout << documents.size() << " documents for query ["s << queries[id++] << "]"s << endl;
     }
 
-	}*/
+	}
 
 	/*{
 		mt19937 generator;
@@ -643,7 +669,7 @@ int main()
 		}
 	}*/
 
-mt19937 generator;
+/*mt19937 generator;
 
 	const auto dictionary = GenerateDictionary(generator, 1000, 10);
 	const auto documents = GenerateQueries(generator, dictionary, 10'000, 70);
@@ -656,9 +682,10 @@ mt19937 generator;
 	}
 
 	TEST(seq);
-	TEST(par);
+	TEST(par);*/
 
-	/*SearchServer search_server("and with"s);
+	{
+	SearchServer search_server("and with"s);
 
     int id = 0;
     for (
@@ -691,5 +718,6 @@ mt19937 generator;
         const auto [words, status] = search_server.MatchDocument(execution::par, query, 3);
         cout << words.size() << " words for document 3"s << endl;
         // 0 words for document 3
-    }*/
+    }
+	}
 }

@@ -29,6 +29,7 @@ std::vector<std::string> SplitIntoWords(std::string_view text)
 		{
 			words.push_back( std::string( start, next ) );
 			//words.push_back(std::basic_string_view(start, std::distance(start, next)));
+			//words.push_back(std::string_view(start, next - start));
 		}
 		
 		start = next + 1;
@@ -36,6 +37,8 @@ std::vector<std::string> SplitIntoWords(std::string_view text)
 	}
 	words.push_back( std::string( start, next ) );
 	//words.push_back(std::basic_string_view(start, std::distance(start, next)));
+
+	//words.push_back(std::string_view(start, next - start));
 
 	return words;
 }
