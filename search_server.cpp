@@ -82,7 +82,35 @@ std::tuple<std::vector<std::string_view>, DocumentStatus> SearchServer::MatchDoc
 
 std::tuple<std::vector<std::string_view>, DocumentStatus> SearchServer::MatchDocument(std::execution::sequenced_policy policy, const std::string_view raw_query, int document_id) const
 {
-	Query query = ParseQuery(raw_query);
+	const Query query = ParseQuery(raw_query);
+	std::vector<std::string_view> matched_words;
+
+	
+
+	std::copy_if(policy, documents_.at(document_id).words.begin(), documents_.at(document_id).words.end(), std::back_inserter(matched_words), [&](const auto word)
+	{
+		//return query.plus_words.count(word);
+		return std::find(query.plus_words.begin(), query.plus_words.end(), word) != query.plus_words.end();
+	});
+
+	for (const auto word : query.minus_words)
+	{
+		if (std::find(documents_.at(document_id).words.begin(), documents_.at(document_id).words.end(), word) != documents_.at(document_id).words.end())
+		{
+			matched_words.clear();
+			break;
+		}
+	}
+    
+    std::sort(matched_words.begin(), matched_words.end()); 
+    auto last = std::unique(matched_words.begin(), matched_words.end());
+    matched_words.erase(last, matched_words.end());
+    
+	return {matched_words, documents_.at(document_id).status};
+	
+	
+	
+	/*Query query = ParseQuery(raw_query);
 
 	std::vector<std::string_view> matched_words;
 
@@ -107,7 +135,7 @@ std::tuple<std::vector<std::string_view>, DocumentStatus> SearchServer::MatchDoc
     auto last = std::unique(matched_words.begin(), matched_words.end());
     matched_words.erase(last, matched_words.end());
 	
-	return {matched_words, documents_.at(document_id).status};
+	return {matched_words, documents_.at(document_id).status};*/
 }
 
 std::tuple<std::vector<std::string_view>, DocumentStatus> SearchServer::MatchDocument(std::execution::parallel_policy policy, const std::string_view raw_query, int document_id) const
@@ -132,8 +160,6 @@ std::tuple<std::vector<std::string_view>, DocumentStatus> SearchServer::MatchDoc
 			return {matched_words, documents_.at(document_id).status};
 		}
 	}
-
-
 
 	std::copy_if(policy, documents_.at(document_id).words.begin(), documents_.at(document_id).words.end(), std::back_inserter(matched_words), [&](const auto word)
 	{
