@@ -13,6 +13,8 @@
 #include <execution>
 #include <chrono>
 #include <unordered_set>
+#include <list>
+#include <deque>
 #include "document.h"
 
 class SearchServer
@@ -66,8 +68,8 @@ private:
 
 	struct Query
 	{
-		std::unordered_set<std::string_view> plus_words;
-		std::unordered_set<std::string_view> minus_words;
+		std::deque<std::string_view> plus_words;
+		std::deque<std::string_view> minus_words;
 	};
 
 	std::unordered_set<std::string> stop_words_;
@@ -81,7 +83,7 @@ private:
 
 	bool IsStopWord(const std::string& word) const;
 
-	std::vector<std::string> SplitIntoWordsNoStop(const std::string_view text) const;
+	std::vector<std::string_view> SplitIntoWordsNoStop(const std::string_view text) const;
 
 	static int ComputeAverageRating(const std::vector<int>& ratings);
 
@@ -122,7 +124,17 @@ SearchServer::SearchServer(T container)
 template<typename T>
 std::vector<Document> SearchServer::FindTopDocuments(const std::string_view raw_query, T predicate) const
 {
-	const Query query = ParseQuery(raw_query);
+	Query query = ParseQuery(raw_query);
+
+	std::sort(query.plus_words.begin(), query.plus_words.end()); 
+  auto last_plus = std::unique(query.plus_words.begin(), query.plus_words.end());
+	query.plus_words.erase(last_plus, query.plus_words.end());
+
+	std::sort(query.minus_words.begin(), query.minus_words.end()); 
+  auto last_minus = std::unique(query.minus_words.begin(), query.minus_words.end());
+	query.minus_words.erase(last_minus, query.minus_words.end());
+
+
 	auto matched_documents = FindAllDocuments(query, predicate);
 
 	if (matched_documents.size() > MAX_RESULT_DOCUMENT_COUNT)
@@ -136,6 +148,8 @@ template<typename T>
 std::vector<Document> SearchServer::FindAllDocuments(const Query& query, T predicate) const
 {
 	std::map<int, double> document_to_relevance;
+	
+	
 	for (const auto word : query.plus_words)
 	{
 		if (word_to_document_freqs_.count(word) == 0)
@@ -145,7 +159,7 @@ std::vector<Document> SearchServer::FindAllDocuments(const Query& query, T predi
 
 		const double inverse_document_freq = ComputeWordInverseDocumentFreq(std::string(word));
 
-		for (const auto& [document_id, term_freq] : word_to_document_freqs_.at(word))
+		for (const auto& [document_id, term_freq] : word_to_document_freqs_.at(std::string(word)))
 		{
 			if (predicate(document_id, documents_.at(document_id).status, documents_.at(document_id).rating))
 			{
@@ -156,11 +170,11 @@ std::vector<Document> SearchServer::FindAllDocuments(const Query& query, T predi
 
 	for (const auto word : query.minus_words)
 	{
-		if (word_to_document_freqs_.count(word.data()) == 0)
+		if (word_to_document_freqs_.count(std::string(word)) == 0)
 		{
 			continue;
 		}
-		for (const auto& [document_id, _] : word_to_document_freqs_.at(word.data()))
+		for (const auto& [document_id, _] : word_to_document_freqs_.at(std::string(word)))
 		{
 			document_to_relevance.erase(document_id);
 		}
