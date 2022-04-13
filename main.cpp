@@ -550,8 +550,11 @@ void Test(string_view mark, SearchServer search_server, const string& query, Exe
     int word_count = 0;
     for (int id = 0; id < document_count; ++id) {
         const auto [words, status] = search_server.MatchDocument(policy, query, id);
-
-        word_count += words.size();
+		if(words.size() > 0)
+		{
+			word_count += words.size();
+		}
+        
     }
     cout << word_count << endl;
 }

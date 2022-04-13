@@ -107,16 +107,16 @@ SearchServer::SearchServer(T container)
 {
 	using namespace std::string_literals;
 
-	for(const auto& w : container)
+	for(const auto& item : container)
 	{
-		if(!IsValidWord(w))
+		if(!IsValidWord(item))
 		{
-			throw std::invalid_argument("word {"s + w + "} contains illegal characters"s);
+			throw std::invalid_argument("word {"s + item + "} contains illegal characters"s);
 		}
 
-		if(!w.empty())
+		if(!item.empty())
 		{
-			stop_words_.insert(w);
+			stop_words_.insert(item);
 		}
 	}
 }
