@@ -72,7 +72,7 @@ private:
 		std::deque<std::string_view> minus_words;
 	};
 
-	std::unordered_set<std::string> stop_words_;
+	std::set<std::string, std::less<>> stop_words_;
 	std::map<std::string_view, std::map<int, double>> word_to_document_freqs_;
 	std::map<int, DocumentData> documents_;
 	std::set<int> document_ids_;
@@ -81,9 +81,9 @@ private:
 
 	std::string_view AddUniqueWord(const std::string& word);
 
-	bool IsStopWord(const std::string& word) const;
+	bool IsStopWord(const std::string_view word) const;
 
-	std::vector<std::string_view> SplitIntoWordsNoStop(const std::string_view text) const;
+	std::deque<std::string_view> SplitIntoWordsNoStop(const std::string_view text) const;
 
 	static int ComputeAverageRating(const std::vector<int>& ratings);
 
@@ -91,7 +91,7 @@ private:
 
 	Query ParseQuery(const std::string_view text) const;
 
-	static bool IsValidWord(const std::string& word);
+	static bool IsValidWord(const std::string_view word);
 
 	void CheckIsValidDocument(int document_id) const;
 
