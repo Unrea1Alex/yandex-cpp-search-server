@@ -325,12 +325,15 @@ SearchServer::Query SearchServer::ParseQuery(const std::string_view text) const
 	
 	{
 		//LOG_DURATION_NS("SplitIntoWords");
-		words = SplitIntoWords(text);
+		//words = SplitIntoWords(text);
 	}
 
 	{
+		words = SplitIntoWordsNoStop(text);
+	}
+
+	/*{
 		//LOG_DURATION_NS("MakeQuery");
-		//std::for_each(words.begin(), words.end(), [&](const auto& word)
 		for(const auto word : words)
 		{
 			const QueryWord query_word = ParseQueryWord(word);
@@ -347,6 +350,24 @@ SearchServer::Query SearchServer::ParseQuery(const std::string_view text) const
 				}
 			}
 		}
+	}*/
+
+	{
+		for(auto word : words)
+		{
+			if (word[0] == '-')
+			{
+				word = word.substr(1);
+				minus_words.push_back(word);
+			}
+			else 
+			{
+				plus_words.push_back(word);
+			}
+
+		}
+
+		
 	}
 
 	return {plus_words, minus_words};
