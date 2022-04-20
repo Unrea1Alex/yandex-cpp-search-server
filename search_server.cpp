@@ -60,12 +60,12 @@ void SearchServer::AddDocument(int document_id, const std::string_view document,
 
 std::vector<Document> SearchServer::FindTopDocuments(const std::string_view raw_query, DocumentStatus doc_status) const
 {
-	return FindTopDocuments(raw_query, [doc_status](int document_id, DocumentStatus status, int rating) { return status == doc_status; });
+	return FindTopDocuments(std::execution::seq, raw_query, [doc_status](int document_id, DocumentStatus status, int rating) { return status == doc_status; });
 }
 
 std::vector<Document> SearchServer::FindTopDocuments(const std::string_view raw_query) const
 {
-	return FindTopDocuments(raw_query, [](int document_id, DocumentStatus status, int rating) { return status == DocumentStatus::ACTUAL; });
+	return FindTopDocuments(std::execution::seq, raw_query, [](int document_id, DocumentStatus status, int rating) { return status == DocumentStatus::ACTUAL; });
 }
 
 int SearchServer::GetDocumentCount() const
@@ -110,15 +110,7 @@ std::tuple<std::vector<std::string_view>, DocumentStatus> SearchServer::MatchDoc
 
 std::tuple<std::vector<std::string_view>, DocumentStatus> SearchServer::MatchDocument(std::execution::parallel_policy policy, const std::string_view raw_query, int document_id) const
 {
-	//LOG_DURATION_NS("MatchDocument");
-
-	Query query;
-	{
-		//LOG_DURATION_NS("ParseQuery");
-		query = ParseQuery(raw_query);
-	} 
-
-	//LOG_DURATION_NS("MatchDocument");
+	Query query(ParseQuery(raw_query));
 
 	std::vector<std::string_view> matched_words(documents_.at(document_id).words.size());
 	
@@ -136,7 +128,7 @@ std::tuple<std::vector<std::string_view>, DocumentStatus> SearchServer::MatchDoc
 	});
 
 	std::sort(matched_words.begin(), matched_words.end()); 
-  	matched_words.erase(std::unique(matched_words.begin(), matched_words.end()), matched_words.end());
+	matched_words.erase(std::unique(matched_words.begin(), matched_words.end()), matched_words.end());
 
 	if(!matched_words.empty() && matched_words[0] == "")
 	{
@@ -239,42 +231,24 @@ std::deque<std::string_view> SearchServer::SplitIntoWordsNoStop(const std::strin
 {
 	using namespace std::string_literals;
 
-	std::vector<std::string_view> in_words;
-
-	{
-		//LOG_DURATION_NS("SplitIntoWords");
-		in_words = SplitIntoWords(text);
-	}
-	 
-
+	std::vector<std::string_view> in_words(SplitIntoWords(text));
 	std::deque<std::string_view> words(in_words.size());
 
+	for (const auto word : in_words)
 	{
-		//LOG_DURATION_NS("Check is valid");
-		for (const auto word : in_words)
+		if(!IsValidWord(word))
 		{
-			if(!IsValidWord(word))
-			{
-				throw std::invalid_argument("word {"s + std::string(word) + "} contains illegal characters"s);
-			}
+			throw std::invalid_argument("word {"s + std::string(word) + "} contains illegal characters"s);
 		}
 	}
-	
   
+	std::transform(in_words.begin(), in_words.end(), words.begin(), [this](auto word)
 	{
-		//LOG_DURATION_NS("SplitIntoWordsNoStop Transform");
-		std::transform(in_words.begin(), in_words.end(), words.begin(), [this](auto word)
-		{
-			return !IsStopWord(std::string(word)) ? word : std::string_view("");
-		});
-	}
+		return !IsStopWord(std::string(word)) ? word : std::string_view("");
+	});
 
-	{
-		//LOG_DURATION_NS("SplitIntoWordsNoStop Clear");
-		words.erase(std::remove_if(words.begin(), words.end(), [](auto word) { return word.empty();	}), words.end());
-	}
+	words.erase(std::remove_if(words.begin(), words.end(), [](auto word) { return word.empty();	}), words.end());
 	
-
 	return words;
 }
 
@@ -308,26 +282,12 @@ SearchServer::QueryWord SearchServer::ParseQueryWord(std::string_view text) cons
 
 SearchServer::Query SearchServer::ParseQuery(const std::string_view text) const
 {
-	std::deque<std::string_view> words;
-	
-	{
-		//LOG_DURATION_NS("SplitIntoWordsNoStop");
-		words = SplitIntoWordsNoStop(text);
-	}
-	 
+	std::deque<std::string_view> words = SplitIntoWordsNoStop(text);
 
-	std::deque<std::string_view> plus_words;
-	std::deque<std::string_view> minus_words;
+	std::deque<std::string_view> plus_words(words);
+	std::deque<std::string_view> minus_words(words);
 
-	{
-		//LOG_DURATION_NS("Copy words");
-		plus_words = words;
-		minus_words = words;
-	}
-
- 	//LOG_DURATION_NS("Transform words");
 	plus_words.erase(std::remove_if(plus_words.begin(), plus_words.end(), [](auto word) { return word[0] == '-';	}), plus_words.end());
-
 	minus_words.erase(std::remove_if(minus_words.begin(), minus_words.end(), [](auto word)	{ return word[0] != '-'; }), minus_words.end());
 
 	std::transform(minus_words.begin(), minus_words.end(), minus_words.begin(), [](auto word) {	return word.substr(1); });

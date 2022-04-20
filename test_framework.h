@@ -28,7 +28,8 @@ void AssertEqualImpl(const T& t, const U& u, const std::string& t_str, const std
 		std::cout << file << "("s << line << "): "s << func << ": "s;
 		std::cout << "ASSERT_EQUAL("s << t_str << ", "s << u_str << ") failed: "s;
 		std::cout << t << " != "s << u << "."s;
-		if (!hint.empty()) {
+		if (!hint.empty()) 
+		{
 			std::cout << " Hint: "s << hint;
 		}
 		std::cout << std::endl;
@@ -79,8 +80,3 @@ std::ostream& operator<<(std::ostream& stream, const std::map<T, U>& container)
 	stream << "}";
 	return stream;
 }
-
-
-
-
-
