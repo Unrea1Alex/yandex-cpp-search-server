@@ -19,11 +19,10 @@ std::list<Document> ProcessQueriesJoined(const SearchServer& search_server, cons
 
     std::list<Document> result;
 
-    std::for_each(std::execution::seq, docs.begin(), docs.end(), [&result](auto& doc)
+    for (const auto& doc : docs)
     {
         result.insert(result.end(), doc.begin(), doc.end());
-    });
+    }
 
     return result;
-
 }

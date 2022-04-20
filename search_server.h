@@ -37,7 +37,16 @@ public:
 
 	template<typename T>
 	std::vector<Document> FindTopDocuments(const std::string_view raw_query, T predicate) const;
+
+	template<typename T, typename Policy>
+	std::vector<Document> FindTopDocuments(Policy polycy, const std::string_view raw_query, T predicate) const;
+
+	template<typename T, typename Policy>
+	std::vector<Document> FindTopDocuments(Policy polycy, const std::string_view raw_query, DocumentStatus doc_status) const;	
 	std::vector<Document> FindTopDocuments(const std::string_view raw_query, DocumentStatus doc_status) const;
+
+	template<typename T, typename Policy>
+	std::vector<Document> FindTopDocuments(Policy polycy, const std::string_view raw_query) const;
 	std::vector<Document> FindTopDocuments(const std::string_view raw_query) const;
 
 	int GetDocumentCount() const;
@@ -142,6 +151,17 @@ std::vector<Document> SearchServer::FindTopDocuments(const std::string_view raw_
 		matched_documents.resize(MAX_RESULT_DOCUMENT_COUNT);
 	}
 	return matched_documents;
+}
+
+template<typename T, typename Policy>
+std::vector<Document> SearchServer::FindTopDocuments(Policy policy, const std::string_view raw_query, T predicate) const
+{
+	if constexpr (std::is_same_v<std::decay_t<Policy>, std::execution::parallel_policy>)
+	{
+		return FindTopDocuments(raw_query, predicate);
+	}
+
+	return FindTopDocuments(raw_query, predicate);
 }
 
 template<typename T>

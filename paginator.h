@@ -3,6 +3,7 @@
 #include <iostream>
 #include <vector>
 #include <algorithm>
+#include <cassert>
 #include "test_framework.h"
 
 
@@ -40,13 +41,13 @@ public:
 
 	Paginator(const It& begin, const It& end, size_t page_size)
 	{
-		ASSERT_HINT(page_size > 0, "Page size = " + std::to_string(page_size) + ". Must be greater zero.");
+		assert(page_size > 0);
 
 		auto size = end - begin;
 
 		for(size_t i = 0; i < size; i += page_size)
 		{
-			int end = i + page_size < size ? i + page_size : size;
+			auto end = i + page_size < size ? i + page_size : size;
 			pages.emplace_back(PaginatorRange(begin + i, begin + end));
 		}
 	}
