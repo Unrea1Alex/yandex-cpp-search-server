@@ -186,7 +186,7 @@ std::vector<Document> SearchServer::FindAllDocuments(const Query& query, T predi
 template<typename T, typename Policy>
 std::vector<Document> SearchServer::FindAllDocuments(Policy policy, const Query& query, T predicate) const
 {
-	ConcurrentMap<int, double> document_to_relevance(100);
+	ConcurrentMap<int, double> document_to_relevance(documents_.size());
 
 	std::for_each(policy, query.plus_words.begin(), query.plus_words.end(), [&](auto word)
 	{
