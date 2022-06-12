@@ -6,10 +6,12 @@ Building and Run
   2. cmake ..
   3. cmake --build .
   4. Start ./search_engine or search_engine.exe
+
 System requirements and Stack
 C++17
 GCC version 8.1.0
 Cmake 3.21.2 (minimal 3.10)
 TF-IDF
+
 Future plans
 Add a user interface for adding documents and searching through them
